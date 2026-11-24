@@ -81,6 +81,28 @@ body.student .po{display:none!important}
 .hud .out{background:rgba(255,255,255,.16);color:#fff;min-height:36px;font-size:14px;padding:0 12px}
 .code{font:700 22px Outfit,sans-serif;letter-spacing:.04em;overflow-wrap:anywhere}
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ffd166;margin-right:6px}.dot.ok{background:#7CF2B4}
+.gate{position:fixed;inset:0;z-index:20;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top)) max(5vw,16px) 40px}
+.gate .wrap{max-width:560px;margin:0 auto}
+.gate h1{font-size:44px;font-weight:800;color:var(--hi);margin:0 0 4px}
+.who{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:14px 0}
+.who button{min-height:96px;font-size:18px;background:var(--card);color:var(--ink);border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.who button small{font-weight:600;color:var(--mute);font-size:13px}
+.who button.on{border-color:var(--hi);background:var(--soft)}
+.hidden{display:none!important}
+body.student .po{display:none!important}
+.hud .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.hud .out{background:rgba(255,255,255,.16);color:#fff;min-height:36px;font-size:14px;padding:0 12px}
+.code{font:700 22px Outfit,sans-serif;letter-spacing:.04em;overflow-wrap:anywhere}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ffd166;margin-right:6px}.dot.ok{background:#7CF2B4}
+.opt{display:block;width:100%;text-align:left;margin:8px 0;background:var(--card);color:var(--ink);border:2px solid var(--line);padding:10px 14px;min-height:52px;font-weight:600}
+.opt.sel{border-color:var(--hi);background:var(--soft)}.opt.right{border-color:var(--hi);background:var(--soft)}.opt.wrong{border-color:var(--acc)}
+.opt:disabled{opacity:1}
+.qtext{font-size:19px;line-height:1.5;white-space:pre-line;margin:0 0 6px}
+.qbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.big{font:800 64px/1 Outfit,sans-serif;color:var(--hi)}
+.tp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.tp:first-child{border-top:0}
+.tp .bar{grid-column:1/2;height:8px}
+details.card summary{cursor:pointer;min-height:32px}
 </style>
 </head>
 <body>
@@ -106,6 +128,9 @@ body.student .po{display:none!important}
     <h2>Today's missions</h2>
     <div class="card" id="missions"></div>
     <div class="grid">
+      <div class="card"><h3>Daily challenge</h3><p class="muted" id="tdChal"></p><button id="tdGo">Start 5 questions</button></div>
+      <div class="card"><h3>Upcoming tests</h3><ul class="list" id="exList"></ul>
+        <form id="exF" class="row" style="margin-top:8px"><input id="exN" maxlength="40" placeholder="e.g. Math WA1"><input id="exD" type="date"><button class="ghost">Add</button></form></div>
       <div class="card"><h3>Due soon</h3><ul class="list" id="dueSoon"></ul></div>
       <div class="card"><h3>Log a win</h3><p class="muted">Anything you did well today, big or small. Proud moments count.</p>
         <form id="winF" class="row"><input id="winT" placeholder="e.g. Asked teacher a question in Math" maxlength="120"><button>Add +5</button></form>
@@ -152,12 +177,36 @@ body.student .po{display:none!important}
       <li>Order at the hawker centre in Chinese.</li></ul></div>
   </section>
 
-  <section id="progress">
-    <h2>My subjects</h2>
+  <section id="learn">
+    <div id="lHome">
+      <h2>Learn &amp; practise</h2>
+      <div class="grid" id="lSubs"></div>
+      <div class="card" style="margin-top:14px"><h3>Mistake book</h3><p class="muted" id="lMistTxt"></p><button class="ghost" id="lMistGo">Review my mistakes</button></div>
+      <p class="muted">All questions are original, written to follow the MOE syllabus topics for each subject level. They are not copied from any textbook. Add questions from your own workbook under each subject.</p>
+  
+    <h2 style="margin-top:28px">School marks</h2>
     <div class="card" id="subjects"></div>
     <div class="card"><h3>Add a test or assignment mark</h3><form id="mkF"><div class="row"><select id="mkSubj"></select><input id="mkS" type="number" min="0" max="100" inputmode="decimal" placeholder="Score %"></div>
       <label for="mkL">What was it?</label><div class="row"><input id="mkL" maxlength="60" placeholder="e.g. Term 1 WA1"><button>Add +10</button></div></form>
       <p class="muted">Beat your last mark in a subject for +50 bonus XP. You're only racing yourself.</p></div>
+      </div>
+    <div id="lSub" class="hidden">
+      <button class="ghost sm" id="lBack">← All subjects</button>
+      <h2 id="lsT" style="margin-top:12px"></h2>
+      <div class="card"><div class="row"><div><label for="lsLv">Level</label><select id="lsLv"><option>G1</option><option>G2</option><option>G3</option></select></div>
+        <div><label for="lsSec">Topics up to</label><select id="lsSec"><option value="1">Sec 1</option><option value="2">Sec 2</option><option value="3">Sec 3</option><option value="4">Sec 4</option></select></div></div>
+        <p class="muted" id="lsNote"></p>
+        <div class="row" style="margin-top:6px"><button id="mockGo">Mock test · 20 Q · timed</button><button class="ghost" id="revGo">Review mistakes</button></div></div>
+      <div class="card"><h3>Topics</h3><div id="lsTop"></div></div>
+      <div class="card"><h3>Recent results</h3><ul class="list" id="lsHist"></ul></div>
+      <details class="card"><summary><b>Add your own question</b></summary>
+        <form id="qF"><label for="qQ">Question</label><textarea id="qQ" rows="3" maxlength="600"></textarea>
+        <label for="qC">Correct answer</label><input id="qC" maxlength="150">
+        <label>Wrong answers (at least one)</label><input id="qW1" maxlength="150"><input id="qW2" maxlength="150" style="margin-top:6px"><input id="qW3" maxlength="150" style="margin-top:6px">
+        <label for="qE">Explanation (optional)</label><input id="qE" maxlength="300">
+        <button style="margin-top:10px">Save question</button></form></details>
+    </div>
+    <div id="lRun" class="hidden"></div>
   </section>
 
   <section id="rewards">
@@ -175,6 +224,7 @@ body.student .po{display:none!important}
     <div class="card"><h3>Last 7 days</h3><div class="kpis" id="pKpi"></div>
       <div class="row" style="margin-top:12px"><button class="ghost" id="repCopy">Copy weekly report</button></div></div>
     <div class="card"><h3>Day by day</h3><div class="scroll"><table id="pWeek"></table></div></div>
+    <div class="card"><h3>Learning this week</h3><div class="kpis" id="pLearn"></div><h3 style="margin-top:14px">Mock tests</h3><ul class="list" id="pMock"></ul><h3 style="margin-top:14px">Topics to work on</h3><ul class="list" id="pWeak"></ul></div>
     <div class="card"><h3>Reward requests</h3><ul class="list" id="pRw"></ul></div>
     <div class="card"><h3>Send encouragement</h3><p class="muted">It appears at the top of his Today screen. Praise effort, like "3 focus sessions this week", not just marks.</p>
       <form id="noteF"><input id="noteT" maxlength="140" placeholder="e.g. Proud of you for finishing Chem on time!">
@@ -194,6 +244,7 @@ body.student .po{display:none!important}
 
     <div class="card"><h3>Settings</h3>
       <label for="capSel">Daily game-time limit</label><select id="capSel"><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="9999">No limit</option></select>
+      <label>Subject levels and school year</label><div class="row" id="lvSet"></div>
       <label for="nmIn">Student's name</label><form id="nmF" class="row"><input id="nmIn" maxlength="30"><button class="ghost">Save</button></form>
       <label>Change a PIN</label><form id="pinF" class="row"><select id="pinRole"><option value="student">Student PIN</option><option value="parent">Parent PIN</option></select><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New 4–6 digits"><button class="ghost">Change</button></form>
       <label>Remove all Level Up data from this device</label><button class="ghost" id="wipe">Reset this device</button></div>
@@ -233,15 +284,306 @@ body.student .po{display:none!important}
 <script>
 
 {
+/* ---------- learning content: original questions written to MOE syllabus topics (not copied from any textbook) ---------- */
+// [key, subject, topic name, levels (1=G1,2=G2,3=G3), first sec year it appears]
+const TOPICS=[
+['m_int','Math','Integers & order of operations','123','1'],['m_frac','Math','Fractions & decimals','12','1'],['m_pct','Math','Percentages','123','1'],['m_ratio','Math','Ratio, rate & speed','123','1'],
+['m_alg','Math','Algebraic expressions','123','1'],['m_lin','Math','Linear equations','123','1'],['m_mens','Math','Perimeter, area & volume','123','1'],['m_stat','Math','Statistics','123','1'],
+['m_pyth','Math',"Pythagoras' theorem",'123','2'],['m_grad','Math','Coordinates & gradient','123','2'],['m_sim','Math','Simultaneous equations','23','2'],['m_prob','Math','Probability','123','3'],
+['m_money','Math','Money: interest, GST & wages','12','3'],['m_trig','Math','Trigonometry','123','3'],['m_idx','Math','Indices & standard form','23','3'],['m_quad','Math','Quadratic equations','23','3'],
+['e_tense','English','Verb tenses','123','1'],['e_sva','English','Subject-verb agreement','123','1'],['e_prep','English','Prepositions & connectors','123','1'],['e_punct','English','Punctuation','123','1'],
+['e_vocab','English','Vocabulary in context','123','1'],['e_comp','English','Reading comprehension','123','1'],['e_edit','English','Editing: spot the error','123','2'],['e_synth','English','Sentence synthesis','23','3'],
+['sc_cell','Biology','Cells & organisation','123','1'],['b_nut','Biology','Nutrition & digestion','123','2'],['b_photo','Biology','Photosynthesis','123','2'],['b_diff','Biology','Diffusion & osmosis','23','3'],
+['b_enz','Biology','Enzymes','23','3'],['b_trans','Biology','Transport in humans','123','3'],['b_resp','Biology','Respiration & gas exchange','23','3'],['b_repro','Biology','Reproduction & inheritance','23','4'],
+['sc_lab','Chemistry','Lab safety & measurement','123','1'],['sc_matter','Chemistry','Particles & states of matter','123','1'],['sc_sep','Chemistry','Separation techniques','123','1'],['c_atom','Chemistry','Atomic structure','123','3'],
+['c_pt','Chemistry','The Periodic Table','123','3'],['c_bond','Chemistry','Chemical bonding','23','3'],['c_mole','Chemistry','Formulae & the mole','23','3'],['c_acid','Chemistry','Acids, bases & salts','123','3'],
+['c_react','Chemistry','Reaction rates & energy','23','4'],['c_redox','Chemistry','Metals & reactivity','123','4'],
+['z_ci','Chinese','词语意思 Word meanings','123','1'],['z_liang','Chinese','量词 Measure words','12','1'],['z_py','Chinese','拼音 Pinyin','12','1'],['z_ju','Chinese','完成句子 Complete the sentence','123','1'],
+['z_yd','Chinese','阅读理解 Reading','123','1'],['z_cy','Chinese','成语 Idioms','3','3']];
+const BANK=[];const Q=(t,q,o,e)=>BANK.push({id:'b'+BANK.length,t,q,o,e}); // o[0] is the correct answer; options are shuffled when shown
+
+// Biology
+Q('sc_cell','Which part of a cell controls its activities?',['Nucleus','Cell membrane','Cytoplasm','Vacuole'],'The nucleus holds the genetic material (DNA) that controls what the cell does.');
+Q('sc_cell','Which structure is found in plant cells but NOT in animal cells?',['Cell wall','Cell membrane','Nucleus','Mitochondrion'],'Plant cells have a cellulose cell wall that gives them a fixed shape. Animal cells do not.');
+Q('sc_cell','Where does photosynthesis take place in a plant cell?',['Chloroplast','Mitochondrion','Nucleus','Vacuole'],'Chloroplasts contain chlorophyll, which absorbs light for photosynthesis.');
+Q('sc_cell','What is the main job of the cell membrane?',['Controls what enters and leaves the cell','Makes food for the cell','Gives the cell a fixed shape','Stores the genetic information'],'The cell membrane is partially permeable: it controls the movement of substances in and out.');
+Q('sc_cell','Red blood cells have no nucleus. What is the advantage?',['More space to carry oxygen','They can divide faster','They can make more proteins','They can photosynthesise'],'Without a nucleus there is more room for haemoglobin, which carries oxygen.');
+Q('sc_cell','Which order goes from simplest to most complex?',['Cell → tissue → organ → organ system','Tissue → cell → organ → organ system','Cell → organ → tissue → organ system','Organ → tissue → cell → organ system'],'Cells form tissues, tissues form organs, and organs work together in organ systems.');
+Q('b_nut','Where is most digested food absorbed?',['Small intestine','Stomach','Large intestine','Oesophagus'],'The small intestine has villi that give a large surface area for absorption.');
+Q('b_nut','Where is bile made?',['Liver','Gall bladder','Pancreas','Stomach'],'Bile is made in the liver and stored in the gall bladder.');
+Q('b_nut','What does bile do to fats?',['Emulsifies them into small droplets','Digests them into amino acids','Absorbs them into the blood','Turns them into starch'],'Emulsification gives a larger surface area for lipase to digest fats.');
+Q('b_nut','In the iodine test, starch turns iodine solution…',['Blue-black','Brick-red','Purple','Milky white'],'Iodine solution changes from brown to blue-black when starch is present.');
+Q('b_nut',"A positive Benedict's test for reducing sugar gives a…",['Brick-red precipitate','Blue-black colour','Purple colour','Colourless solution'],"Heat the food with Benedict's solution: it changes from blue to green, yellow, orange or brick-red as more reducing sugar is present.");
+Q('b_nut','What is the main job of the large intestine (colon)?',['Absorb water','Digest proteins','Make bile','Absorb most digested food'],'The colon absorbs water and mineral salts from undigested material.');
+Q('b_photo','Which is the word equation for photosynthesis?',['carbon dioxide + water → glucose + oxygen','glucose + oxygen → carbon dioxide + water','oxygen + water → glucose + carbon dioxide','carbon dioxide + glucose → water + oxygen'],'Light energy, absorbed by chlorophyll, is used to make glucose from carbon dioxide and water.');
+Q('b_photo','Which green pigment absorbs light energy?',['Chlorophyll','Haemoglobin','Starch','Cellulose'],'Chlorophyll in chloroplasts absorbs light for photosynthesis.');
+Q('b_photo','Which gas is given out during photosynthesis?',['Oxygen','Carbon dioxide','Nitrogen','Hydrogen'],'Oxygen is a by-product of photosynthesis.');
+Q('b_photo','Through which openings does carbon dioxide enter a leaf?',['Stomata','Xylem vessels','Root hairs','Cuticle'],'Stomata are pores, mostly on the underside of the leaf, that allow gases in and out.');
+Q('b_photo','On a dull day, what would most likely increase the rate of photosynthesis?',['Increasing the light intensity','Reducing carbon dioxide','Removing water','Covering the leaves'],'When light is the limiting factor, more light increases the rate.');
+Q('b_photo','When testing a leaf for starch, why is it placed in hot alcohol?',['To remove the chlorophyll','To kill bacteria','To add starch','To make it greener'],'Removing the green colour lets you see the iodine colour change clearly.');
+Q('b_diff','Diffusion is the net movement of particles from…',['higher concentration to lower concentration','lower concentration to higher concentration','anywhere, using energy from respiration','only through a cell wall'],'Particles spread out down a concentration gradient. No energy from the cell is needed.');
+Q('b_diff','Osmosis is the movement of…',['water molecules through a partially permeable membrane, from a dilute to a more concentrated solution','salt through a membrane from a concentrated to a dilute solution','water from a concentrated to a dilute solution','any particle through a cell wall'],'Water moves from a region of higher water potential (dilute) to lower water potential (concentrated).');
+Q('b_diff','A red blood cell is placed in distilled water. What happens?',['It swells and bursts','It shrinks','Nothing changes','It becomes plasmolysed'],'Water enters by osmosis. Animal cells have no cell wall, so the cell bursts.');
+Q('b_diff','A plant cell is placed in a concentrated salt solution. What happens?',['It loses water and becomes plasmolysed','It bursts','It gains water and becomes turgid','It divides'],'Water leaves the cell by osmosis; the cytoplasm pulls away from the cell wall.');
+Q('b_diff','Which change increases the rate of diffusion?',['A larger surface area','A thicker membrane','A lower temperature','A smaller concentration gradient'],'Large surface area, steep gradient, thin membrane and higher temperature all speed up diffusion.');
+Q('b_enz','Enzymes are made of…',['Protein','Carbohydrate','Fat','Starch'],'Enzymes are proteins that act as biological catalysts.');
+Q('b_enz','What does amylase break down?',['Starch into maltose','Proteins into amino acids','Fats into fatty acids and glycerol','Maltose into glucose'],'Amylase digests starch into maltose. Maltase then turns maltose into glucose.');
+Q('b_enz','What happens to most human enzymes at 80 °C?',['They are denatured','They work fastest','They pause but work normally when cooled','They multiply'],'High temperature changes the shape of the active site permanently, so the enzyme is denatured.');
+Q('b_enz','What is the optimum temperature for most human enzymes?',['About 37 °C','About 0 °C','About 60 °C','About 100 °C'],'Human body temperature is about 37 °C.');
+Q('b_enz','Why are enzymes called biological catalysts?',['They speed up reactions without being used up','They are used up in reactions','They slow reactions down','They only work outside the body'],'A catalyst speeds up a reaction and remains unchanged at the end.');
+Q('b_enz','Pepsin works in the stomach. Its optimum pH is about…',['2 (acidic)','7 (neutral)','9 (alkaline)','Any pH'],'The stomach contains hydrochloric acid, so pepsin works best in acidic conditions.');
+Q('b_trans','Which blood vessels carry blood away from the heart?',['Arteries','Veins','Capillaries','Valves'],'Arteries carry blood away from the heart at high pressure.');
+Q('b_trans','Which blood component carries oxygen?',['Red blood cells','White blood cells','Platelets','Plasma'],'Red blood cells contain haemoglobin, which combines with oxygen.');
+Q('b_trans','What do platelets do?',['Help the blood to clot','Carry oxygen','Make antibodies','Carry urea'],'Platelets help form clots that seal wounds.');
+Q('b_trans','Which chamber pumps blood to the whole body?',['Left ventricle','Right ventricle','Left atrium','Right atrium'],'The left ventricle has the thickest muscular wall to pump blood around the body.');
+Q('b_trans','Why do veins have valves?',['To prevent backflow of blood','To pump blood','To clot blood','To exchange gases'],'Blood in veins is at low pressure; valves stop it flowing backwards.');
+Q('b_trans','Where are substances exchanged between blood and body cells?',['Capillaries','Arteries','Veins','The heart'],'Capillary walls are one cell thick, so substances can pass through easily.');
+Q('b_resp','Which is the word equation for aerobic respiration?',['glucose + oxygen → carbon dioxide + water (+ energy)','carbon dioxide + water → glucose + oxygen','glucose → lactic acid + oxygen','oxygen + water → glucose (+ energy)'],'Aerobic respiration uses oxygen to release energy from glucose.');
+Q('b_resp','During hard exercise, anaerobic respiration in muscles produces…',['Lactic acid','Ethanol and carbon dioxide','Oxygen','Glucose'],'Without enough oxygen, muscles break glucose down into lactic acid.');
+Q('b_resp','Anaerobic respiration in yeast produces…',['Ethanol and carbon dioxide','Lactic acid only','Oxygen and water','Starch'],'This is why yeast makes bread rise (CO₂) and is used to make alcohol.');
+Q('b_resp','In which part of a cell does aerobic respiration mainly happen?',['Mitochondria','Nucleus','Chloroplasts','Cell wall'],'Mitochondria release energy from food by aerobic respiration.');
+Q('b_resp','Where does gas exchange take place in the lungs?',['Alveoli','Trachea','Bronchi','Diaphragm'],'Alveoli have thin walls, a large surface area and many capillaries.');
+Q('b_repro','How many chromosomes are in a normal human body cell?',['46','23','92','44'],'Body cells have 23 pairs = 46 chromosomes. Gametes have 23.');
+Q('b_repro','Gametes are produced by…',['Meiosis','Mitosis','Fertilisation','Osmosis'],'Meiosis halves the chromosome number to make gametes.');
+Q('b_repro','The fusion of a male and a female gamete is called…',['Fertilisation','Pollination','Germination','Meiosis'],'Fertilisation forms a zygote.');
+Q('b_repro','The transfer of pollen from an anther to a stigma is called…',['Pollination','Fertilisation','Seed dispersal','Germination'],'Pollination happens before fertilisation.');
+Q('b_repro','Tall (T) is dominant to short (t). Tt is crossed with tt. What proportion of the offspring are tall?',['50%','25%','75%','100%'],'Offspring: Tt, Tt, tt, tt, so half are tall.');
+Q('b_repro','An allele that shows only when two copies are present is…',['Recessive','Dominant','Codominant','A mutation'],'A recessive allele is hidden when a dominant allele is present.');
+// Chemistry
+Q('sc_lab','What is the SI unit of mass?',['Kilogram (kg)','Gram (g)','Newton (N)','Litre (L)'],'The SI base unit of mass is the kilogram.');
+Q('sc_lab','Which apparatus measures exactly 25.0 cm³ of a liquid most accurately?',['Pipette','Beaker','Conical flask','Test tube'],'A pipette delivers a fixed volume very accurately.');
+Q('sc_lab','When heating a liquid in a test tube, you should…',['point the mouth of the tube away from people','seal it with a stopper','fill it to the top','hold it over your face to watch'],'Liquids can spit out suddenly when heated.');
+Q('sc_lab','A bottle label shows a flame symbol. This means the chemical is…',['Flammable','Corrosive','Radioactive','An oxidising agent'],'The flame symbol warns that it catches fire easily.');
+Q('sc_lab','When reading a measuring cylinder of water, your eye should be level with…',['the bottom of the meniscus','the top of the meniscus','the top of the cylinder','the base of the cylinder'],'Read at eye level from the bottom of the curved meniscus to avoid parallax error.');
+Q('sc_matter','Which state has a fixed volume but no fixed shape?',['Liquid','Solid','Gas','None of these'],'Liquid particles are close together but can slide past each other.');
+Q('sc_matter','In which state are the particles furthest apart?',['Gas','Liquid','Solid','They are the same in all states'],'Gas particles are far apart and move randomly at high speed.');
+Q('sc_matter','A solid changing directly into a gas is called…',['Sublimation','Evaporation','Condensation','Melting'],'Dry ice (solid CO₂) sublimes.');
+Q('sc_matter','Why can a gas be compressed easily?',['There are large spaces between its particles','Its particles are very small','Its particles do not move','Its particles are packed closely'],'The particles can be pushed closer together.');
+Q('sc_matter','A gas is heated in a sealed container. Why does the pressure rise?',['Particles move faster and hit the walls harder and more often','Particles become bigger','Particles become heavier','Particles stop moving'],'More frequent and harder collisions with the walls mean higher pressure.');
+Q('sc_sep','How do you obtain salt from salt solution?',['Evaporation','Filtration','Chromatography','Using a magnet'],'Heating evaporates the water and leaves the salt behind.');
+Q('sc_sep','What is the best way to separate sand from water?',['Filtration','Chromatography','Distillation','Using a magnet'],'Sand is insoluble, so it stays on the filter paper as the residue.');
+Q('sc_sep','How do you get pure water from seawater?',['Distillation','Filtration','Chromatography','Decanting'],'Water boils off, then condenses back into a liquid in the condenser.');
+Q('sc_sep','How can you separate the dyes in an ink?',['Paper chromatography','Filtration','Distillation','Evaporation'],'Different dyes travel different distances up the paper.');
+Q('sc_sep','How can you separate iron filings from sulfur powder?',['Use a magnet','Filtration','Evaporation','Distillation'],'Iron is magnetic; sulfur is not.');
+Q('sc_sep','How do you separate ethanol from water?',['Fractional distillation','Filtration','A separating funnel','A magnet'],'They mix completely but have different boiling points.');
+Q('c_atom','Which particles are found in the nucleus?',['Protons and neutrons','Protons and electrons','Electrons only','Neutrons and electrons'],'Electrons are in shells around the nucleus.');
+Q('c_atom','What is the charge of an electron?',['−1','+1','0','+2'],'Protons are +1, neutrons 0, electrons −1.');
+Q('c_atom','An atom has 11 protons and 12 neutrons. What is its nucleon (mass) number?',['23','11','12','1'],'Nucleon number = protons + neutrons = 11 + 12 = 23.');
+Q('c_atom','Isotopes of an element have the same number of…',['Protons','Neutrons','Nucleons','Mass'],'Isotopes have the same proton number but different numbers of neutrons.');
+Q('c_atom','What is the electronic configuration of sodium (proton number 11)?',['2.8.1','2.8','2.9','2.1.8'],'Shells fill 2, then 8, then the rest: 2.8.1.');
+Q('c_atom','The proton number of an element tells you…',['the number of protons in each atom','the number of protons + neutrons','the number of neutrons','the number of shells'],'Proton (atomic) number = number of protons.');
+Q('c_pt','Elements in the same group have the same number of…',['Valence (outer shell) electrons','Protons','Neutrons','Electron shells'],'That is why they have similar chemical properties.');
+Q('c_pt','Why are Group 18 (noble) gases unreactive?',['They have a full outer shell of electrons','They are metals','They are liquids','They have no electrons'],'A full outer shell is stable, so they do not need to gain, lose or share electrons.');
+Q('c_pt','Which of these is a halogen?',['Chlorine','Sodium','Neon','Calcium'],'Halogens are Group 17: fluorine, chlorine, bromine, iodine.');
+Q('c_pt','Going down Group 1, the reactivity of the metals…',['increases','decreases','stays the same','first rises then falls'],'The outer electron is further from the nucleus and is lost more easily.');
+Q('c_pt','The period number of an element tells you its number of…',['Electron shells','Valence electrons','Neutrons','Protons'],'Period 3 elements have three occupied shells.');
+Q('c_pt','Which element is a metal?',['Magnesium','Sulfur','Oxygen','Carbon'],'Magnesium is a Group 2 metal.');
+Q('c_bond','An ionic bond usually forms between…',['a metal and a non-metal','two non-metals','two metals','two noble gases'],'Metals lose electrons to non-metals, forming oppositely charged ions.');
+Q('c_bond','A covalent bond is formed by…',['sharing a pair of electrons','transferring electrons','sharing protons','attraction between two nuclei only'],'Non-metal atoms share electron pairs.');
+Q('c_bond','When does sodium chloride conduct electricity?',['When molten or dissolved in water','When solid','Never','Only as a gas'],'The ions must be free to move.');
+Q('c_bond','Why does water have a low melting point compared with sodium chloride?',['Weak forces between its molecules','Its covalent bonds are very strong','It is ionic','It has free electrons'],'Only weak intermolecular forces need to be overcome.');
+Q('c_bond','What is the charge on a magnesium ion?',['2+','1+','2−','3+'],'Magnesium (2.8.2) loses its 2 outer electrons.');
+Q('c_bond','What is the formula of the compound formed from Ca²⁺ and Cl⁻ ions?',['CaCl₂','CaCl','Ca₂Cl','Ca₂Cl₃'],'Two Cl⁻ ions balance one Ca²⁺ ion.');
+Q('c_mole','What is the relative molecular mass of H₂O? (H = 1, O = 16)',['18','17','10','34'],'2 × 1 + 16 = 18.');
+Q('c_mole','What is the relative molecular mass of CO₂? (C = 12, O = 16)',['44','28','40','32'],'12 + 2 × 16 = 44.');
+Q('c_mole','How many moles are in 36 g of water? (Mr = 18)',['2','1','0.5','18'],'Moles = mass ÷ Mr = 36 ÷ 18 = 2.');
+Q('c_mole','What is the mass of 0.5 mol of NaCl? (Na = 23, Cl = 35.5)',['29.25 g','58.5 g','117 g','14.6 g'],'Mr = 58.5, so mass = 0.5 × 58.5 = 29.25 g.');
+Q('c_mole','How many atoms are in one molecule of H₂SO₄?',['7','3','6','4'],'2 H + 1 S + 4 O = 7 atoms.');
+Q('c_mole','What volume does one mole of any gas occupy at room temperature and pressure?',['24 dm³','22.4 dm³','12 dm³','1 dm³'],'Molar gas volume at r.t.p. is 24 dm³.');
+Q('c_acid','Which pH is a strong acid?',['1','7','9','14'],'Strong acids have a very low pH; 7 is neutral and above 7 is alkaline.');
+Q('c_acid','Acid + alkali →',['salt + water','salt + hydrogen','salt + carbon dioxide only','water only'],'This is neutralisation.');
+Q('c_acid','Dilute acid + magnesium →',['a salt + hydrogen','a salt + water','a salt + oxygen','water only'],'Reactive metals displace hydrogen from acids.');
+Q('c_acid','Acid + carbonate →',['salt + water + carbon dioxide','salt + hydrogen','salt only','water + oxygen'],'The fizzing is carbon dioxide.');
+Q('c_acid','How do you test for carbon dioxide?',['It turns limewater milky','It "pops" with a lighted splint','It relights a glowing splint','It bleaches damp litmus'],'CO₂ forms a white precipitate of calcium carbonate in limewater.');
+Q('c_acid','How do you test for hydrogen?',['A lighted splint goes out with a "pop"','Limewater turns milky','A glowing splint relights','Red litmus turns blue'],'Hydrogen burns with a squeaky pop.');
+Q('c_acid','What colour is universal indicator in a neutral solution?',['Green','Red','Purple','Orange'],'pH 7 is green; acids are red/orange/yellow; alkalis are blue/purple.');
+Q('c_acid','Which salt forms from hydrochloric acid and sodium hydroxide?',['Sodium chloride','Sodium sulfate','Sodium nitrate','Sodium carbonate'],'Hydrochloric acid makes chlorides.');
+Q('c_react','Which change increases the rate of a reaction?',['Raising the temperature','Using larger lumps','Using a lower concentration','Removing the catalyst'],'Particles move faster and collide more often with enough energy.');
+Q('c_react','Why does powdered marble react faster with acid than marble chips?',['It has a larger surface area','It is heavier','It is a catalyst','It is colder'],'More surface means more collisions per second.');
+Q('c_react','An exothermic reaction…',['releases heat energy to the surroundings','absorbs heat from the surroundings','has no energy change','only happens when heated'],'The surroundings get warmer.');
+Q('c_react','Which process is exothermic?',['Burning methane','Thermal decomposition of calcium carbonate','Photosynthesis','Melting ice'],'Combustion releases heat. The others take in energy.');
+Q('c_react','A catalyst…',['speeds up a reaction and is chemically unchanged at the end','is used up in the reaction','always slows a reaction','increases the amount of product made'],'It provides a pathway with lower activation energy.');
+Q('c_react','Why does a higher temperature increase reaction rate?',['Particles have more energy, so they collide more often and more effectively','Particles become bigger','The activation energy rises','There are fewer collisions'],'More collisions have energy above the activation energy.');
+Q('c_redox','Which metal is the most reactive?',['Potassium','Copper','Iron','Zinc'],'Potassium is near the top of the reactivity series.');
+Q('c_redox','Iron rusts when exposed to…',['both water and oxygen','water only','oxygen only','carbon dioxide only'],'Rusting needs both water and oxygen (air).');
+Q('c_redox','Galvanising protects iron by coating it with…',['Zinc','Copper','Silver','Gold'],'Zinc is more reactive, so it corrodes first (sacrificial protection).');
+Q('c_redox','Zinc is added to copper(II) sulfate solution. What happens?',['Zinc sulfate and copper form','No reaction','Hydrogen is given off','Zinc oxide forms'],'Zinc is more reactive than copper, so it displaces copper.');
+Q('c_redox','Oxidation is…',['gain of oxygen or loss of electrons','loss of oxygen','gain of electrons','gain of hydrogen'],'OIL RIG: Oxidation Is Loss, Reduction Is Gain (of electrons).');
+Q('c_redox','Iron is extracted from haematite in a…',['Blast furnace','Electrolysis cell','Fractionating column','Distillation flask'],'Carbon monoxide reduces iron(III) oxide to iron.');
+// English
+Q('e_tense','By the time we arrived, the movie ______.',['had started','has started','starts','will start'],'Past perfect (had + past participle) shows the action finished before another past action.');
+Q('e_tense','She ______ to school every day.',['walks','walk','walking','have walked'],'Simple present for a habit; "she" takes -s.');
+Q('e_tense','If it rains tomorrow, we ______ the match.',['will cancel','cancelled','would have cancelled','had cancelled'],'First conditional: if + present, will + verb.');
+Q('e_tense','I ______ my homework when the lights went out.',['was doing','am doing','have done','do'],'Past continuous for an action in progress when something else happened.');
+Q('e_tense','They ______ in Singapore since 2015.',['have lived','live','are living','lived'],'"Since" with an action continuing to now uses the present perfect.');
+Q('e_tense','Yesterday, he ______ his phone on the bus.',['left','leaves','has left','leave'],'"Yesterday" signals the simple past.');
+Q('e_sva','Neither of the boys ______ ready.',['is','are','were','be'],'"Neither" is singular.');
+Q('e_sva','Each of the students ______ a laptop.',['has','have','are having','having'],'"Each" is singular, so use "has".');
+Q('e_sva','My brother and I ______ going to the cinema.',['are','is','am','was'],'Two subjects joined by "and" take a plural verb.');
+Q('e_sva','The list of items ______ on the table.',['is','are','were','have been'],'The subject is "list" (singular), not "items".');
+Q('e_sva','Mathematics ______ my favourite subject.',['is','are','were','have'],'Subjects like mathematics take a singular verb.');
+Q('e_sva','Either my mother or my sisters ______ coming.',['are','is','was','has'],'With either…or, the verb agrees with the nearer subject ("sisters").');
+Q('e_prep','She is good ______ drawing.',['at','in','on','with'],'We say "good at" a skill.');
+Q('e_prep','He apologised ______ being late.',['for','about','of','on'],'"Apologise for" something.');
+Q('e_prep','I was tired, ______ I finished my homework.',['but','because','so','or'],'"But" shows contrast.');
+Q('e_prep','We stayed indoors ______ it was raining heavily.',['because','although','but','unless'],'"Because" gives the reason.');
+Q('e_prep','______ he studied hard, he did not pass the test.',['Although','Because','Since','So'],'"Although" introduces a contrast.');
+Q('e_prep','The cat jumped ______ the wall.',['over','at','of','for'],'"Over" shows movement across the top.');
+Q('e_punct','Which sentence is punctuated correctly?',["It's raining, so bring your umbrella.","Its raining, so bring your umbrella.","It's raining so, bring your umbrella.","Its' raining, so bring your umbrella."],'"It\'s" = "it is". The comma comes before "so".');
+Q('e_punct','Which shows the bags belong to several boys?',["the boys' bags","the boy's bags","the boys bags","the boys's bags"],'For a plural noun ending in -s, put the apostrophe after the s.');
+Q('e_punct','Which is punctuated correctly?',['"Where are you going?" asked Tom.','"Where are you going," asked Tom?','"Where are you going?" Asked Tom.','Where are you going? "asked Tom."'],'The question mark goes inside the quotation marks, and "asked" stays lower case.');
+Q('e_punct','Which is punctuated correctly?',['I bought apples, oranges and pears.','I bought, apples oranges and pears.','I bought apples oranges, and, pears.','I bought apples, oranges, and, pears.'],'Use commas to separate items in a list.');
+Q('e_vocab','"The instructions were so ambiguous that nobody knew what to do." Ambiguous means…',['unclear; could mean more than one thing','very long','very strict','written in another language'],'Ambiguous = open to more than one meaning.');
+Q('e_vocab','"He was reluctant to join the team." Reluctant means…',['unwilling','excited','early','proud'],'Reluctant = not wanting to do something.');
+Q('e_vocab','To persevere means to…',['keep trying despite difficulties','give up easily','complain loudly','celebrate early'],'Persevere = continue in spite of difficulty.');
+Q('e_vocab','"There was an abundant supply of food." Abundant means…',['plentiful','tiny','expensive','cold'],'Abundant = more than enough.');
+Q('e_vocab','"She gave a candid answer." Candid means…',['honest and direct','rude','sweet','confusing'],'Candid = frank and truthful.');
+Q('e_vocab','Which word is the opposite of "generous"?',['Selfish','Kind','Rich','Helpful'],'Generous = willing to give; selfish = caring only about yourself.');
+Q('e_edit','Find the error: "Everyone in the class have finished the test."',['have → has','class → classes','finished → finishing','test → tests'],'"Everyone" is singular.');
+Q('e_edit',"Find the error: \"He don't like vegetables.\"",["don't → doesn't",'like → likes','He → Him','vegetables → vegetable'],'He/she/it takes "doesn\'t".');
+Q('e_edit','Find the error: "She has went to the library."',['went → gone','has → have','She → Her','library → libraries'],'Present perfect uses the past participle: has gone.');
+Q('e_edit','Find the error: "There is many people at the mall."',['is → are','many → much','people → peoples','at → on'],'"People" is plural, so "there are".');
+Q('e_edit','Find the error: "I am more taller than my sister."',['remove "more"','taller → tall','than → then','am → is'],'"Taller" is already comparative.');
+Q('e_edit','Find the error: "Yesterday I buy a new bag."',['buy → bought','a → an','new → news','Yesterday → Tomorrow'],'"Yesterday" needs the past tense.');
+const P1='Mei Ling had practised the piano for months, but on the day of the concert her hands shook. She took a deep breath, remembered her teacher\'s advice to focus on one bar at a time, and began. When she finished, the hall was silent for a moment before the audience burst into applause.\n\n';
+Q('e_comp',P1+'Why did Mei Ling\'s hands shake?',['She was nervous','She was cold','She was ill','The piano was broken'],'Shaking hands before a performance show nerves.');
+Q('e_comp',P1+'What helped her begin?',["Remembering her teacher's advice",'The audience clapping','A message from a friend','Practising that morning'],'She remembered to focus on one bar at a time.');
+Q('e_comp',P1+'"Burst into applause" suggests the audience…',['clapped suddenly and loudly','left the hall','was bored','was angry'],'"Burst" shows something sudden and strong.');
+const P2='Plastic waste in the ocean breaks down into tiny pieces called microplastics. Fish and other sea creatures can mistake these pieces for food. Scientists worry that microplastics may then pass up the food chain to humans who eat seafood.\n\n';
+Q('e_comp',P2+'What are microplastics?',['Tiny pieces of broken-down plastic','A type of fish food','New plastic bottles','Seaweed'],'The first sentence defines them.');
+Q('e_comp',P2+'Why are scientists worried?',['Microplastics may reach humans through seafood','Fish are getting bigger','The ocean is getting warmer','Plastic is too expensive'],'They may pass up the food chain to people.');
+const P3='Although Ravi preferred football, he joined the robotics club to keep his friend company. To his surprise, he enjoyed building and programming the robot so much that he signed up for the national competition.\n\n';
+Q('e_comp',P3+'Why did Ravi first join the robotics club?',['To keep his friend company','He loved robots','His teacher made him','To win a prize'],'Stated in the first sentence.');
+Q('e_comp',P3+'Which word shows Ravi did not expect to enjoy robotics?',['surprise','preferred','joined','national'],'"To his surprise" means it was unexpected.');
+Q('e_synth','Combine using "although": It was raining. We went for a walk.',['Although it was raining, we went for a walk.','Although it was raining, but we went for a walk.','It was raining although we went for a walk.','Although we went for a walk, it was raining heavily.'],'Don\'t use "but" together with "although".');
+Q('e_synth','Change to reported speech: She said, "I am tired."',['She said that she was tired.','She said that I am tired.','She said that she is tired yesterday.','She said she am tired.'],'Change "I" to "she" and move the tense back: am → was.');
+Q('e_synth','Change to the passive: The chef cooked the meal.',['The meal was cooked by the chef.','The meal is cooked by the chef.','The chef was cooked by the meal.','The meal cooked the chef.'],'Object becomes subject; keep the past tense: was cooked.');
+Q('e_synth','Rewrite using "unless": You will be late if you do not hurry.',['You will be late unless you hurry.','You will be late unless you do not hurry.','Unless you will hurry, you are late.','You will hurry unless you are late.'],'"Unless" already means "if not".');
+Q('e_synth','Combine using "who": I met a girl. She plays the violin.',['I met a girl who plays the violin.','I met a girl which plays the violin.','I met a girl who she plays the violin.','I met a girl whom plays the violin.'],'"Who" replaces "she"; don\'t repeat the pronoun.');
+// Chinese
+Q('z_ci','“认真”是什么意思？',['Serious and careful','Very fast','Very angry','Very happy'],'认真 = 做事用心、不马虎。');
+Q('z_ci','“帮助”是什么意思？',['To help','To borrow','To forget','To arrive'],'帮助别人 = help others.');
+Q('z_ci','“复习”是什么意思？',['To revise / review lessons','To rest','To complain','To cook'],'考试前要复习功课。');
+Q('z_ci','“放弃”是什么意思？',['To give up','To start','To win','To remember'],'不要轻易放弃 = don\'t give up easily.');
+Q('z_ci','“骄傲”是什么意思？',['Proud','Shy','Hungry','Lazy'],'我为你感到骄傲 = I\'m proud of you.');
+Q('z_ci','“准时”是什么意思？',['On time','Late','Slowly','Often'],'上课要准时。');
+Q('z_ci','“鼓励”是什么意思？',['To encourage','To scold','To borrow','To forget'],'老师鼓励我们多说华语。');
+Q('z_liang','一___书',['本','张','只','条'],'书用“本”：一本书。');
+Q('z_liang','一___纸',['张','本','个','条'],'纸用“张”：一张纸。');
+Q('z_liang','一___狗',['只','本','张','件'],'动物常用“只”：一只狗。');
+Q('z_liang','一___衣服',['件','张','只','本'],'衣服用“件”：一件衣服。');
+Q('z_liang','一___鱼',['条','本','张','件'],'长条形的东西用“条”：一条鱼。');
+Q('z_liang','一___车',['辆','本','张','件'],'车用“辆”：一辆车。');
+Q('z_py','“学校”的拼音是：',['xué xiào','xuě xiāo','xué xiāo','xuè xiào'],'学 xué（第二声），校 xiào（第四声）。');
+Q('z_py','“老师”的拼音是：',['lǎo shī','lào shì','lǎo shì','láo shī'],'老 lǎo（第三声），师 shī（第一声）。');
+Q('z_py','“电脑”的拼音是：',['diàn nǎo','diǎn nǎo','diàn nào','tiān nǎo'],'电 diàn（第四声），脑 nǎo（第三声）。');
+Q('z_py','“考试”的拼音是：',['kǎo shì','kào shī','kǎo shí','gǎo shì'],'考 kǎo（第三声），试 shì（第四声）。');
+Q('z_py','“作业”的拼音是：',['zuò yè','zuó yè','zuò yē','zhuò yè'],'作 zuò，业 yè，都是第四声。');
+Q('z_py','“中文”的拼音是：',['zhōng wén','zhòng wén','zhōng wèn','chōng wén'],'中 zhōng（第一声），文 wén（第二声）。');
+Q('z_ju','我每天放学后都会___作业。',['做','吃','唱','跑'],'做作业 = do homework.');
+Q('z_ju','明天要考试，所以今晚我要好好___。',['复习','睡觉','玩游戏','看电视'],'考试前要复习。');
+Q('z_ju','他___生病了，___还是来上学。',['虽然……但是','因为……所以','如果……就','不但……而且'],'“虽然……但是”表示转折 (although…still).');
+Q('z_ju','外面下大雨，你出门时要带___。',['雨伞','书包','手机','钥匙'],'下雨要带雨伞。');
+Q('z_ju','这道题太难了，我___不会做。',['完全','高兴','漂亮','快乐'],'完全不会 = cannot do it at all.');
+Q('z_ju','我们___爱护环境，不乱丢垃圾。',['应该','刚才','昨天','去年'],'应该 = should.');
+const Z1='小明以前很少说华语。他的妈妈想了一个办法：每天吃晚饭的时候，全家人只说华语。一开始，小明觉得很难，可是一个月以后，他说得越来越流利了。\n\n';
+Q('z_yd',Z1+'小明以前怎么样？',['很少说华语','很喜欢说华语','不吃晚饭','不喜欢妈妈'],'第一句：小明以前很少说华语。');
+Q('z_yd',Z1+'妈妈想的办法是什么？',['吃晚饭时全家只说华语','给他买新书','让他上补习班','不让他玩游戏'],'每天吃晚饭的时候，全家人只说华语。');
+Q('z_yd',Z1+'一个月以后，小明有什么变化？',['华语说得越来越流利','不想吃晚饭','更少说华语','去别的学校'],'“他说得越来越流利了”。');
+const Z2='星期六早上，阿强和朋友去公园跑步。跑完步后，他们一起去小贩中心吃早餐。阿强点了一碗面和一杯咖啡乌。\n\n';
+Q('z_yd',Z2+'阿强星期六早上先做什么？',['去公园跑步','吃早餐','去学校','买咖啡'],'先跑步，后吃早餐。');
+Q('z_yd',Z2+'他们在哪里吃早餐？',['小贩中心','公园','学校','家里'],'“去小贩中心吃早餐”。');
+Q('z_cy','“一心一意”的意思是：',['专心地做一件事','有很多心意','一边做一边玩','很粗心'],'一心一意 = 心思集中在一件事上。');
+Q('z_cy','“半途而废”的意思是：',['做事做到一半就放弃','走路走得很慢','花了很多钱','坚持到底'],'比喻做事不能坚持到底。');
+Q('z_cy','“自言自语”的意思是：',['自己跟自己说话','跟大家说话','不说话','说别人的坏话'],'自言自语 = talking to oneself.');
+Q('z_cy','“井井有条”的意思是：',['很整齐、有条理','很乱','有很多井','做得很快'],'形容条理分明、整齐。');
+Q('z_cy','“九牛一毛”的意思是：',['极小的一部分','有很多牛','非常重要','非常贵'],'比喻极大数量中极小的一部分。');
+
+/* ---------- math question generators: new numbers every time ---------- */
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),pick=a=>a[Math.floor(Math.random()*a.length)];
+const gcd=(a,b)=>b?gcd(b,a%b):Math.abs(a),r1=x=>Math.round(x*10)/10,r2=x=>Math.round(x*100)/100;
+const fN=n=>n<0?'−'+(-n):String(n),fP=n=>n<0?'('+fN(n)+')':String(n),sg=n=>n<0?'− '+(-n):'+ '+n;
+const tm=(k,v)=>k===1?v:k===-1?'−'+v:fN(k)+v,sg2=(k,v)=>(k<0?'− ':'+ ')+(Math.abs(k)===1?'':Math.abs(k))+v;
+const frac=(n,d)=>{const g=gcd(n,d)||1;n/=g;d/=g;if(d<0){n=-n;d=-d}return d===1?fN(n):fN(n)+'/'+d};
+const SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'},sup=n=>String(n).split('').map(c=>SUP[c]).join('');
+const num=(q,ans,e,tol=0.001)=>({type:'num',q,ans,e,tol}),mcq=(q,o,e)=>({type:'mcq',q,o,e});
+const money=x=>x.toFixed(2);
+const GEN={
+m_int:()=>{const a=ri(2,12),b=ri(2,9),c=ri(2,9),v=ri(0,3);
+  if(v===0)return num(`Work out ${a} + ${b} × ${c}`,a+b*c,`Multiply first: ${b} × ${c} = ${b*c}, then add ${a} to get ${a+b*c}.`);
+  if(v===1)return num(`Work out (−${a}) × ${b} − ${c}`,-a*b-c,`(−${a}) × ${b} = ${fN(-a*b)}, then ${fN(-a*b)} − ${c} = ${fN(-a*b-c)}.`);
+  if(v===2)return num(`Work out ${a*b} ÷ (−${b}) + ${c}`,c-a,`${a*b} ÷ (−${b}) = −${a}, then −${a} + ${c} = ${fN(c-a)}.`);
+  return num(`Work out (${a} − ${a+b})²`,b*b,`${a} − ${a+b} = −${b}, and (−${b})² = ${b*b}.`)},
+m_frac:()=>{const v=ri(0,2);
+  if(v===0){const d=pick([2,4,5,8,10,20,25]),n=ri(1,d-1);return num(`Write ${n}/${d} as a decimal.`,n/d,`${n} ÷ ${d} = ${n/d}.`)}
+  if(v===1){const d=pick([3,4,5,6,8]),n=ri(1,d-1),k=ri(2,12)*d;return num(`Find ${n}/${d} of ${k}.`,k/d*n,`${k} ÷ ${d} = ${k/d}, then × ${n} = ${k/d*n}.`)}
+  const b=ri(2,6),d=ri(2,7),a=ri(1,b-1),c=ri(1,d-1),N=a*d+c*b,D=b*d;
+  return mcq(`Work out ${a}/${b} + ${c}/${d}. Give the answer in its simplest form.`,[frac(N,D),frac(a+c,b+d),frac(a*c,D),frac(N+1,D),frac(N,D+b)],`Use the common denominator ${D}: ${a*d}/${D} + ${c*b}/${D} = ${N}/${D} = ${frac(N,D)}.`)},
+m_pct:()=>{const v=ri(0,3);
+  if(v===0){const p=pick([5,10,15,20,25,30,40,60,75]),x=ri(2,40)*20;return num(`Find ${p}% of ${x}.`,p*x/100,`${p}/100 × ${x} = ${r2(p*x/100)}.`)}
+  if(v===1){const p=pick([10,15,20,25,30,40]),x=ri(4,40)*5,s=r2(x*(100-p)/100);return num(`A bag costs $${x}. It is sold at a ${p}% discount. What is the sale price (in $)?`,s,`You pay ${100-p}% of $${x}: ${100-p}/100 × ${x} = $${money(s)}.`,0.006)}
+  if(v===2){const p=pick([5,10,12,20,25,50]),x=ri(2,30)*20,y=r2(x*(100+p)/100);return num(`Increase ${x} by ${p}%.`,y,`${100+p}% of ${x} = ${100+p}/100 × ${x} = ${y}.`,0.006)}
+  const y=pick([20,25,40,50,80]),a=ri(1,y-1);return num(`${a} out of ${y} students walk to school. What percentage is this?`,r2(a/y*100),`${a}/${y} × 100% = ${r2(a/y*100)}%.`,0.01)},
+m_ratio:()=>{const v=ri(0,2);
+  if(v===0){const a=ri(1,5),b=ri(a+1,9),k=ri(3,20),N=k*(a+b);return num(`$${N} is shared between Ali and Ben in the ratio ${a} : ${b}. How much does Ben get (in $)?`,k*b,`${a} + ${b} = ${a+b} parts. 1 part = ${N} ÷ ${a+b} = $${k}. Ben gets ${b} × ${k} = $${k*b}.`)}
+  if(v===1){const s=ri(4,18)*5,t=ri(2,5);return num(`A car travels ${s*t} km in ${t} hours. What is its average speed in km/h?`,s,`Speed = distance ÷ time = ${s*t} ÷ ${t} = ${s} km/h.`)}
+  const c=ri(30,250),n=ri(3,6),m=ri(7,12),ans=r2(m*c/100);return num(`${n} pens cost $${money(n*c/100)}. How much do ${m} pens cost (in $)?`,ans,`1 pen costs $${money(n*c/100)} ÷ ${n} = $${money(c/100)}. ${m} pens cost ${m} × $${money(c/100)} = $${money(ans)}.`,0.006)},
+m_alg:()=>{if(ri(0,1)){const a=ri(3,9),b=ri(1,9),c=ri(1,a-1),d=ri(1,9);
+    return mcq(`Simplify ${a}x + ${b}y − ${c}x + ${d}y`,[`${tm(a-c,'x')} + ${b+d}y`,`${a+c}x + ${b+d}y`,`${tm(a-c,'x')} + ${Math.abs(b-d)||b+d+1}y`,`${a-c+b+d}xy`],`Collect like terms: ${a}x − ${c}x = ${tm(a-c,'x')} and ${b}y + ${d}y = ${b+d}y.`)}
+  const a=ri(2,7),b=ri(2,6),c=ri(1,9);return mcq(`Expand ${a}(${b}x + ${c})`,[`${a*b}x + ${a*c}`,`${a*b}x + ${c}`,`${a+b}x + ${a*c}`,`${a*b}x − ${a*c}`],`Multiply each term inside the bracket by ${a}: ${a} × ${b}x = ${a*b}x and ${a} × ${c} = ${a*c}.`)},
+m_lin:()=>{const x=ri(-5,9),a=ri(2,9),b=pick([-9,-7,-5,-4,-3,-2,2,3,4,5,6,8]);
+  if(ri(0,1)){const c=a*x+b;return num(`Solve ${a}x ${sg(b)} = ${fN(c)}`,x,`${a}x = ${fN(c)} ${sg(-b)} = ${fN(c-b)}, so x = ${fN(c-b)} ÷ ${a} = ${fN(x)}.`)}
+  const c=a*(x+b);return num(`Solve ${a}(x ${sg(b)}) = ${fN(c)}`,x,`Divide both sides by ${a}: x ${sg(b)} = ${fN(x+b)}, so x = ${fN(x)}.`)},
+m_mens:()=>{const v=ri(0,3);
+  if(v===0){const l=ri(3,20),w=ri(2,15);return ri(0,1)?num(`A rectangle is ${l} cm by ${w} cm. Find its area in cm².`,l*w,`Area = length × breadth = ${l} × ${w} = ${l*w} cm².`):num(`A rectangle is ${l} cm by ${w} cm. Find its perimeter in cm.`,2*(l+w),`Perimeter = 2 × (${l} + ${w}) = ${2*(l+w)} cm.`)}
+  if(v===1){const b=ri(2,20),h=ri(2,16);return num(`A triangle has base ${b} cm and height ${h} cm. Find its area in cm².`,b*h/2,`Area = ½ × base × height = ½ × ${b} × ${h} = ${b*h/2} cm².`)}
+  if(v===2){const r=ri(2,15),A=r1(3.142*r*r);return num(`Find the area of a circle of radius ${r} cm. Take π = 3.142 and give your answer to 1 decimal place.`,A,`Area = πr² = 3.142 × ${r}² = ${A} cm² (1 d.p.).`,0.051)}
+  const r=ri(2,10),h=ri(3,20),V=r1(3.142*r*r*h);return num(`Find the volume of a cylinder with radius ${r} cm and height ${h} cm. Take π = 3.142 and give your answer to 1 d.p.`,V,`Volume = πr²h = 3.142 × ${r}² × ${h} = ${V} cm³ (1 d.p.).`,0.051)},
+m_stat:()=>{const n=pick([5,6,7]),d=Array.from({length:n},()=>ri(1,20)),s=[...d].sort((x,y)=>x-y),L=d.join(', '),sum=d.reduce((a,x)=>a+x,0),v=ri(0,2);
+  if(v===0){const m=r2(sum/n);return num(`Find the mean of: ${L}. Give 2 decimal places if needed.`,m,`Sum = ${sum}. Mean = ${sum} ÷ ${n} = ${m}.`,0.006)}
+  if(v===1){const med=n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;return num(`Find the median of: ${L}`,med,`In order: ${s.join(', ')}. The median is the middle value${n%2?'':' (average of the middle two)'}: ${med}.`)}
+  return num(`Find the range of: ${L}`,s[n-1]-s[0],`Range = largest − smallest = ${s[n-1]} − ${s[0]} = ${s[n-1]-s[0]}.`)},
+m_pyth:()=>{const [a,b,c]=pick([[3,4,5],[5,12,13],[8,15,17],[7,24,25],[6,8,10],[9,12,15],[20,21,29]]),k=pick([1,1,2]),A=a*k,B=b*k,C=c*k;
+  return ri(0,1)?num(`A right-angled triangle has shorter sides ${A} cm and ${B} cm. Find the hypotenuse in cm.`,C,`c² = ${A}² + ${B}² = ${A*A+B*B}, so c = √${A*A+B*B} = ${C} cm.`)
+    :num(`The hypotenuse of a right-angled triangle is ${C} cm and one side is ${A} cm. Find the other side in cm.`,B,`b² = ${C}² − ${A}² = ${C*C-A*A}, so b = √${C*C-A*A} = ${B} cm.`)},
+m_grad:()=>{const m=pick([-4,-3,-2,-1,1,2,3,4]),x1=ri(-5,5),y1=ri(-5,5),dx=ri(1,5),x2=x1+dx,y2=y1+m*dx,v=ri(0,2);
+  if(v===0)return num(`Find the gradient of the line through (${fN(x1)}, ${fN(y1)}) and (${fN(x2)}, ${fN(y2)}).`,m,`Gradient = (${fN(y2)} − ${fP(y1)}) ÷ (${fN(x2)} − ${fP(x1)}) = ${fN(m*dx)} ÷ ${dx} = ${fN(m)}.`);
+  if(v===1){const c=ri(-9,9);return num(`What is the y-intercept of the line y = ${tm(m,'x')} ${sg(c)}?`,c,`In y = mx + c, the y-intercept is c = ${fN(c)}.`)}
+  return num(`A line joins (${fN(x1)}, ${fN(y1)}) and (${fN(x2)}, ${fN(y2)}). What is the x-coordinate of its midpoint?`,(x1+x2)/2,`Midpoint x = (${fN(x1)} + ${fP(x2)}) ÷ 2 = ${fN((x1+x2)/2)}.`)},
+m_sim:()=>{const x=ri(-4,6),y=ri(-4,6);let a,b,c,d;do{a=ri(1,5);b=pick([-4,-3,-2,-1,1,2,3,4]);c=ri(1,5);d=pick([-4,-3,-2,-1,1,2,3,4])}while(a*d-b*c===0);
+  const eq=(p,q,r)=>`${tm(p,'x')} ${sg2(q,'y')} = ${fN(r)}`,S=(u,w)=>`x = ${fN(u)}, y = ${fN(w)}`;
+  return mcq(`Solve the simultaneous equations:\n${eq(a,b,a*x+b*y)}\n${eq(c,d,c*x+d*y)}`,[S(x,y),S(y,x),S(-x,y),S(x,-y),S(x+1,y-1)],`Eliminate one unknown, then substitute back. Check: with x = ${fN(x)} and y = ${fN(y)}, both equations are true.`)},
+m_prob:()=>{if(ri(0,1)){const r=ri(1,9),b=ri(1,9),g=ri(0,6),T=r+b+g;
+    return mcq(`A bag has ${r} red, ${b} blue${g?` and ${g} green`:''} balls. One ball is picked at random. What is the probability that it is red?`,[frac(r,T),frac(b,T),frac(T-r,T),frac(r,T+1),frac(r+1,T)],`P(red) = number of red ÷ total = ${r}/${T} = ${frac(r,T)}.`)}
+  const k=ri(1,4);return mcq(`A fair six-sided die is rolled. What is the probability of getting a number greater than ${k}?`,[frac(6-k,6),frac(k,6),frac(7-k,6),frac(1,6)],`Numbers greater than ${k}: ${6-k} out of 6, so ${frac(6-k,6)}.`)},
+m_money:()=>{const v=ri(0,2);
+  if(v===0){const P=ri(5,50)*100,R=pick([2,2.5,3,4,5]),T=ri(2,5),I=r2(P*R*T/100);return num(`Find the simple interest on $${P} at ${R}% per year for ${T} years (in $).`,I,`Interest = P × R × T ÷ 100 = ${P} × ${R} × ${T} ÷ 100 = $${money(I)}.`,0.006)}
+  if(v===1){const p=ri(20,300),t=r2(p*1.09);return num(`A phone case costs $${p} before GST. GST is 9%. What is the price after GST (in $)?`,t,`Price after GST = ${p} × 1.09 = $${money(t)}.`,0.006)}
+  const h=pick([12,13.5,15,16.8,18]),n=ri(3,8),w=r2(h*n);return num(`Wei earns $${money(h)} per hour. How much does he earn in ${n} hours (in $)?`,w,`${money(h)} × ${n} = $${money(w)}.`,0.006)},
+m_trig:()=>{const t=ri(20,70),h=ri(5,20),v=ri(0,2),R=Math.PI/180;
+  if(v===0){const o=r1(h*Math.sin(t*R));return num(`In a right-angled triangle, the hypotenuse is ${h} cm and one angle is ${t}°. Find the side opposite this angle, to 1 d.p.`,o,`opposite = hypotenuse × sin ${t}° = ${h} × ${Math.sin(t*R).toFixed(4)} = ${o} cm.`,0.051)}
+  if(v===1){const a=r1(h*Math.cos(t*R));return num(`In a right-angled triangle, the hypotenuse is ${h} cm and one angle is ${t}°. Find the side adjacent to this angle, to 1 d.p.`,a,`adjacent = hypotenuse × cos ${t}° = ${h} × ${Math.cos(t*R).toFixed(4)} = ${a} cm.`,0.051)}
+  const o=ri(3,12),A=o+ri(1,8),ang=r1(Math.atan(o/A)/R);return num(`In a right-angled triangle, the side opposite angle θ is ${o} cm and the side adjacent to θ is ${A} cm. Find θ in degrees, to 1 d.p.`,ang,`tan θ = ${o}/${A}, so θ = tan⁻¹(${o}/${A}) = ${ang}°.`,0.051)},
+m_idx:()=>{const v=ri(0,3),m=ri(2,9),n=ri(2,9),L=pick(['a','x','y','p']);
+  if(v===0)return mcq(`Simplify ${L}${sup(m)} × ${L}${sup(n)}`,[L+sup(m+n),L+sup(m*n),L+sup(m+n+1),L+sup(Math.abs(m-n)||m+n+2)],`When multiplying, add the indices: ${m} + ${n} = ${m+n}.`);
+  if(v===1)return mcq(`Simplify (${L}${sup(m)})${sup(n)}`,[L+sup(m*n),L+sup(m+n),L+sup(m*n+1),L+sup(m*n-1)],`Power of a power: multiply the indices, ${m} × ${n} = ${m*n}.`);
+  if(v===2)return mcq(`Simplify ${L}${sup(m+n)} ÷ ${L}${sup(n)}`,[L+sup(m),L+sup(m+2*n),L+sup((m+n)*n),L+sup(m+1)],`When dividing, subtract the indices: ${m+n} − ${n} = ${m}.`);
+  let A=ri(11,99);if(A%10===0)A++;const p=ri(3,7),val=String(A)+'0'.repeat(p-1),a=(A/10).toString();
+  return mcq(`Write ${Number(val).toLocaleString('en-SG')} in standard form.`,[`${a} × 10${sup(p)}`,`${A} × 10${sup(p-1)}`,`${a} × 10${sup(p+1)}`,`${a} × 10${sup(p-1)}`],`Standard form is A × 10ⁿ with 1 ≤ A < 10: ${a} × 10${sup(p)}.`)},
+m_quad:()=>{const nz=[-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7];let p=pick(nz),q=pick(nz);if(p===q)q=p>0?-p:p-1;const b=-(p+q),c=p*q;
+  const eq=['x²',b?sg2(b,'x'):'',c?sg(c):'','= 0'].filter(Boolean).join(' '),S=(u,w)=>{const [i,j]=[u,w].sort((s,t)=>s-t);return `x = ${fN(i)} or x = ${fN(j)}`};
+  return mcq(`Solve ${eq}`,[S(p,q),S(-p,-q),S(p,-q),S(-p,q),S(p+1,q)],`Factorise: (x ${sg(-p)})(x ${sg(-q)}) = 0, so x = ${fN(p)} or x = ${fN(q)}.`)}
+};
+
 const LV=250,PEERJS='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const SUBJ=[['Math','G1'],['English','G2'],['Biology','G2'],['Chemistry','G2'],['Chinese','G1']];
 const TITLES=['Rookie','Starter','Grinder','Focused','Steady','Sharp','Locked-in','Pro','Elite','Legend'];
 const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone the best thing that happened at school today.'],['你最喜欢的游戏是什么？为什么？','What is your favourite game, and why?'],['用中文点一次饭菜或饮料。','Order food or a drink in Chinese once today.'],['跟家人说说你明天的计划。','Tell your family your plan for tomorrow.'],['介绍一个你很喜欢的朋友。','Describe a friend you really like.'],['今天的天气怎么样？你喜欢这样的天气吗？','How is the weather today? Do you like it?'],['如果你有一百块钱，你会买什么？','If you had $100, what would you buy?'],['说说你周末做了什么。','Talk about what you did at the weekend.'],['你觉得哪一科最难？为什么？','Which subject do you find hardest, and why?'],['教家人玩你喜欢的游戏，全程用中文。','Teach a family member your favourite game, only in Chinese.'],['说说一部你喜欢的电影或视频。','Talk about a movie or video you like.'],['你长大以后想做什么工作？','What job would you like to do when you grow up?'],['问爸爸妈妈他们小时候的一件趣事。','Ask your parents about a funny thing from their childhood.'],['描述一下你的房间。','Describe your room.'],['今天你学到了什么新东西？','What new thing did you learn today?'],['吃晚饭时，用中文说三件今天发生的事。','At dinner, say three things that happened today, in Chinese.']];
-const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
-const TABS=[['today','Today'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['progress','Marks'],['rewards','Rewards'],['parent','Admin']];
+const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',learn:'<path d="M2 6l10-4 10 4-10 4z"/><path d="M6 8v6c3 3 9 3 12 0V8"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
+const TABS=[['today','Today'],['learn','Learn'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['rewards','Rewards'],['parent','Admin']];
 const SLOTS={s:"Student's device",p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
-const PARENT_ONLY=new Set(['setup','pin','name','cap','rwAdd','rwDel','give','decl','note','restore']);
-const def=()=>({name:'',pins:{},xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60});
+const PARENT_ONLY=new Set(['setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
+const def=()=>({name:'',pins:{},xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:3,quiz:[],mist:[],myq:[],exams:[]});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -311,7 +653,19 @@ const R={
   give:(S,a)=>{const r=S.redeemed.find(x=>x.id===a.rid);if(!r||r.st!=='pending')return '';r.st='given';return 'Marked as given'},
   decl:(S,a)=>{const r=S.redeemed.find(x=>x.id===a.rid);if(!r||r.st!=='pending')return '';r.st='declined';S.coins+=r.c;return 'Declined, coins refunded'},
   note:(S,a)=>{S.notes.push({t:a.t,x:a.x,d:a.d});return a.x?gainS(S,a.d,a.x,'encouragement sent'):'Message sent'},
-  cap:(S,a)=>{S.cap=a.v;return 'Daily limit set'}
+  cap:(S,a)=>{S.cap=a.v;return 'Daily limit set'},
+  lv:(S,a)=>{if(!LVN[a.v])return '';S.lv[a.sub]=a.v;return a.sub+' level set to '+a.v},
+  sec:(S,a)=>{S.sec=Math.min(4,Math.max(1,+a.v||3));return 'School year set to Sec '+S.sec},
+  qAdd:(S,a)=>{S.myq.push({id:a.qid,s:a.s,q:a.q,c:a.c,w:a.w,e:a.e});return 'Question saved to '+a.s+' → My own questions'},
+  exAdd:(S,a)=>{S.exams.push({id:a.eid,n:a.n,dt:a.dt});return 'Test added'},
+  exDel:(S,a)=>{S.exams=S.exams.filter(x=>x.id!==a.eid);return ''},
+  quiz:(S,a)=>{S.quiz.push({d:a.d,mode:a.mode,sub:a.sub,lv:a.lv,title:a.title,c:a.c,n:a.n,byT:a.byT,secs:a.secs});if(S.quiz.length>400)S.quiz.splice(0,S.quiz.length-400);
+    for(const w of a.wrong||[])if(!S.mist.some(m=>m.id===w.id))S.mist.push(w);if(S.mist.length>150)S.mist.splice(0,S.mist.length-150);
+    if(a.fix&&a.fix.length)S.mist=S.mist.filter(m=>!a.fix.includes(m.id));
+    const L=dayOf(S,a.d);L.qz=(L.qz||0)+1;
+    const up=a.lv&&LVN[a.lv]>(LVN[S.lv[a.sub]]||1)?1.5:1,per={practice:3,mock:4,daily:4,review:5}[a.mode]||3;
+    const x=Math.round(a.c*per*up)+(a.mode==='mock'?25:a.mode==='daily'?30:(a.n&&a.c/a.n>=.8?20:0));
+    return gainS(S,a.d,x,a.c+'/'+a.n+' in '+a.title+(up>1?' · level-up bonus':''))}
 };
 function apply(S,a){if(PARENT_ONLY.has(a.type)&&a.by!=='parent')return '';try{return R[a.type](S,a)}catch(e){return ''}}
 function replay(){S=def();for(const a of A)apply(S,a)}
@@ -358,10 +712,75 @@ async function syncCode(){let u=te.encode(JSON.stringify(A)),z=!!window.Compress
 async function readCode(s){s=s.trim().replace(/\s+/g,'');const z=s.startsWith('LUz.');if(!z&&!s.startsWith('LU1.'))throw 0;let u=await unseal(s.slice(4));if(z)u=await pipe(u,new DecompressionStream('gzip'));return JSON.parse(td.decode(u))}
 async function mergeCode(el){try{const n=await merge(await readCode(el.value));el.value='';toast(n?'Merged '+n+' updates':'Already up to date');render()}catch(e){toast('That sync code is not for this family, or it was cut off.')}}
 
+
+/* ---------- learning engine: practice, mock tests, daily challenge, mistake book ---------- */
+const LSUBS=['Math','English','Biology','Chemistry','Chinese'],LVN={G1:1,G2:2,G3:3};
+const TMAP={};TOPICS.forEach(t=>TMAP[t[0]]=t);
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const topicName=k=>k.startsWith('my_')?'My own questions':(TMAP[k]?TMAP[k][2]:k);
+const topicSub=k=>k.startsWith('my_')?k.slice(3):(TMAP[k]?TMAP[k][1]:'');
+function topicsFor(sub,lv,sec){const n=LVN[lv]||1,out=TOPICS.filter(t=>t[1]===sub&&t[3].includes(String(n))&&+t[4]<=sec);
+  if(S.myq.some(q=>q.s===sub))out.push(['my_'+sub,sub,'My own questions','123','1']);return out}
+function norm(g,k,id){const it={id,t:k,s:topicSub(k),type:g.type||'mcq',q:g.q,e:g.e||''};
+  if(it.type==='num'){it.ans=g.ans;it.tol=g.tol||0.001}else{const o=[...new Set(g.o.map(String))].slice(0,4),idx=shuffle(o.map((_,i)=>i));it.opts=idx.map(i=>o[i]);it.c=idx.indexOf(0)}return it}
+function poolFor(k){if(k.startsWith('my_'))return S.myq.filter(q=>'my_'+q.s===k).map(q=>({id:'u'+q.id,q:q.q,o:[q.c,...q.w],e:q.e||''}));return BANK.filter(b=>b.t===k)}
+function itemsFor(k,n){if(GEN[k])return Array.from({length:n},()=>norm(GEN[k](),k,'g'+uid()));return shuffle(poolFor(k)).slice(0,n).map(b=>norm(b,k,b.id))}
+function mixed(keys,n){const pools={},out=[],T=shuffle(keys);for(let i=0;out.length<n&&i<n*4;i++){const k=T[i%T.length];
+  if(GEN[k])out.push(norm(GEN[k](),k,'g'+uid()));else{pools[k]=pools[k]||itemsFor(k,99);if(pools[k].length)out.push(pools[k].shift())}}return shuffle(out)}
+function mastery(){const m={};for(const r of S.quiz)for(const [t,cn] of Object.entries(r.byT||{}))(m[t]=m[t]||[]).push(cn);
+  const out={};for(const t in m){const h=m[t].slice(-5),c=h.reduce((a,x)=>a+x[0],0),n=h.reduce((a,x)=>a+x[1],0);out[t]={c,n,p:n?Math.round(c/n*100):null}}return out}
+const isRight=(it,a)=>a!==undefined&&a!==null&&a!==''&&(it.type==='num'?Math.abs(parseFloat(String(a).replace(/−/g,'-').replace(/[,$\s]/g,''))-it.ans)<=it.tol:a===it.c);
+const ansText=it=>it.type==='num'?String(+it.ans.toFixed(4)):it.opts[it.c];
+const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let QZ=null,qTick=null;
+function startQuiz(mode,sub,lv,title,items){if(!items.length)return toast('No questions here yet. Try another topic or level.');
+  QZ={mode,sub,lv,title,items,i:0,ans:[],start:Date.now(),end:mode==='mock'?Date.now()+items.length*90e3:null,done:false,res:null};
+  clearInterval(qTick);if(QZ.end)qTick=setInterval(()=>{if(!QZ||QZ.done||!QZ.end)return clearInterval(qTick);const l=QZ.end-Date.now();if(l<=0)finishQuiz();else if($('qClock'))$('qClock').textContent=mmss(l)},1000);
+  cfg.ui.tab='learn';render();renderRun();scrollTo(0,0)}
+function practise(k,lv){startQuiz('practice',topicSub(k),lv,topicName(k),itemsFor(k,10))}
+function mock(sub,lv,sec){const ks=topicsFor(sub,lv,sec).map(t=>t[0]);startQuiz('mock',sub,lv,`${sub} ${lv} mock test (up to Sec ${sec})`,mixed(ks,20))}
+function daily(){const m=mastery(),cands=[];for(const s of LSUBS)for(const t of topicsFor(s,S.lv[s]||'G1',S.sec))cands.push(t[0]);
+  const ks=shuffle(cands).sort((a,b)=>(m[a]?m[a].p:50)-(m[b]?m[b].p:50)).slice(0,5);startQuiz('daily','Mixed',null,'Daily challenge',ks.map(k=>itemsFor(k,1)[0]).filter(Boolean))}
+function review(sub){const list=S.mist.filter(x=>!sub||x.s===sub).slice(-10);if(!list.length)return toast('No mistakes to review. Nice!');
+  startQuiz('review',sub||'Mixed',null,'Mistake review',shuffle(list.map(x=>Object.assign({},x))))}
+function finishQuiz(){const z=QZ;if(!z||z.done)return;if(z.items[z.i]&&z.items[z.i].type==='num'&&$('qNum')&&z.ans[z.i]===undefined)z.ans[z.i]=$('qNum').value;
+  z.done=true;clearInterval(qTick);const byT={},wrong=[],fix=[];let c=0;
+  z.items.forEach((it,i)=>{const ok=isRight(it,z.ans[i]);const b=byT[it.t]||(byT[it.t]=[0,0]);b[1]++;if(ok){c++;b[0]++;if(z.mode==='review')fix.push(it.id)}else if(z.mode!=='review')wrong.push(it)});
+  z.res={c,n:z.items.length};act('quiz',{mode:z.mode,sub:z.sub,lv:z.lv,title:z.title,c,n:z.items.length,byT,wrong:wrong.slice(0,20),fix,secs:Math.round((Date.now()-z.start)/1000)});renderRun()}
+function renderRun(){const el=$('lRun'),z=QZ;if(!z){el.innerHTML='';return}
+  if(z.done){const p=Math.round(z.res.c/z.res.n*100),msg=p>=80?'Excellent work!':p>=60?'Good effort. Check the ones you missed below.':p>=40?'Getting there. Every mistake you review makes you stronger.':'Tough one, but now you know exactly what to work on.';
+    el.innerHTML=`<div class="card"><h3>${esc(z.title)}</h3><div class="big">${z.res.c}/${z.res.n}</div><p><b>${p}%</b> · ${msg}</p>
+      <div class="row"><button id="qAgain">Try again</button><button class="ghost" id="qDone">Done</button></div></div>
+      ${z.items.map((it,i)=>isRight(it,z.ans[i])?'':`<div class="card"><p class="qtext">${esc(it.q)}</p><p class="late">Your answer: ${esc(z.ans[i]===undefined||z.ans[i]===''?'(none)':it.type==='num'?z.ans[i]:it.opts[z.ans[i]])}</p><p><b>Answer: ${esc(ansText(it))}</b></p><p class="muted">${esc(it.e)}</p></div>`).join('')}`;return}
+  const it=z.items[z.i],a=z.ans[z.i],fb=z.mode!=='mock'&&a!==undefined,ok=fb&&isRight(it,a),last=z.i===z.items.length-1;
+  const optCls=i=>fb?(i===it.c?'right':i===a?'wrong':''):(a===i?'sel':'');
+  el.innerHTML=`<div class="qbar"><b>${esc(z.title)}</b><span class="num" id="qClock">${z.end?mmss(z.end-Date.now()):''}</span><button class="ghost sm" id="qQuit">Quit</button></div>
+    <p class="muted" style="margin:0 0 6px">Question ${z.i+1} of ${z.items.length} · ${esc(topicName(it.t))}</p><div class="bar"><i style="width:${z.i/z.items.length*100}%"></i></div>
+    <div class="card" style="margin-top:12px"><p class="qtext">${esc(it.q)}</p>
+    ${it.type==='mcq'?it.opts.map((o,i)=>`<button class="opt ${optCls(i)}" data-opt="${i}" ${fb?'disabled':''}>${esc(o)}</button>`).join('')
+      :`<div class="row"><input id="qNum" inputmode="decimal" autocomplete="off" placeholder="Your answer" value="${a!==undefined?esc(a):''}" ${fb?'disabled':''}>${fb||z.mode==='mock'?'':'<button id="qCheck">Check</button>'}</div>`}
+    ${fb?`<div class="note" style="margin-top:12px"><b>${ok?'Correct!':'Not quite.'}</b>${ok?'':' Answer: '+esc(ansText(it))}<br>${esc(it.e)}</div>`:''}
+    <div class="row" style="margin-top:12px">${z.mode==='mock'&&z.i>0?'<button class="ghost" id="qPrev">Back</button>':''}${fb||z.mode==='mock'?`<button id="qNext">${last?'Finish':'Next'}</button>`:''}</div></div>`;
+  if(it.type==='num'&&!fb&&$('qNum'))$('qNum').focus()}
+function renderLearn(){const run=!!QZ,sub=!run&&cfg.ui.lsub;$('lRun').classList.toggle('hidden',!run);$('lSub').classList.toggle('hidden',!sub);$('lHome').classList.toggle('hidden',run||!!sub);
+  const m=mastery(),avg=ks=>{const v=ks.map(k=>m[k]&&m[k].p).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,x)=>a+x,0)/v.length):null};
+  $('lSubs').innerHTML=LSUBS.map(s=>{const lv=S.lv[s]||'G1',ks=topicsFor(s,lv,S.sec).map(t=>t[0]),p=avg(ks),last=S.quiz.filter(r=>r.sub===s&&r.mode==='mock').pop();
+    return `<div class="card"><div class="subj" style="border:0;padding:0"><div class="head"><b>${s} <span class="tag">${lv}</span></b><span class="muted">${ks.length} topics</span></div>
+      <div class="bar"><i style="width:${p||0}%"></i></div><p class="muted" style="margin:6px 0 10px">${p==null?'Not started yet':'Mastery '+p+'%'}${last?` · last mock ${Math.round(last.c/last.n*100)}%`:''}</p>
+      <button data-lsub="${s}" style="width:100%">Open ${s}</button></div></div>`}).join('');
+  $('lMistTxt').textContent=S.mist.length?`${S.mist.length} question${S.mist.length>1?'s':''} to review. Get one right to clear it (+5 XP each).`:'No mistakes saved. Questions you get wrong will appear here.';
+  if(!sub)return;const L=cfg.ui.llv&&cfg.ui.llv[sub]||S.lv[sub]||'G1',sec=+(cfg.ui.lsec||S.sec);
+  $('lsT').textContent=sub;if(document.activeElement!==$('lsLv'))$('lsLv').value=L;if(document.activeElement!==$('lsSec'))$('lsSec').value=String(sec);
+  $('lsNote').textContent=LVN[L]>LVN[S.lv[sub]||'G1']?`Challenge mode: ${L} is above your ${S.lv[sub]||'G1'} level. Correct answers earn 50% more XP.`:`Your ${sub} level is ${S.lv[sub]||'G1'}. Practise a higher level for bonus XP.`;
+  const tops=topicsFor(sub,L,sec);
+  $('lsTop').innerHTML=tops.map(t=>{const x=m[t[0]];return `<div class="tp"><div><b>${esc(t[2])}</b> <span class="tag">${t[0].startsWith('my_')?'Own':'Sec '+t[4]}</span><br><span class="muted">${x?'Mastery '+x.p+'%':(GEN[t[0]]?'Unlimited questions':poolFor(t[0]).length+' questions')}</span></div>
+    <button class="sm" data-prac="${esc(t[0])}">Practise</button><div class="bar"><i style="width:${x?x.p:0}%"></i></div></div>`}).join('')||'<p class="muted">No topics for this level and year.</p>';
+  $('lsHist').innerHTML=S.quiz.filter(r=>r.sub===sub).slice(-6).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)}</span></span><b class="num">${r.c}/${r.n}</b></li>`).join('')||'<li class="muted">No results yet.</li>'}
+
 /* ---------- views ---------- */
 const day=()=>S.log[dk()]||{};
 function streak(){let n=0,d=new Date();const on=k=>{const l=S.log[k];return l&&(l.f||l.cn||l.hw||l.ls)};if(!on(dk(d)))d.setDate(d.getDate()-1);while(on(dk(d))){n++;d.setDate(d.getDate()-1)}return n}
-const opts=()=>SUBJ.map(([s,g])=>`<option value="${s}">${s} (${g})</option>`).join('');
+const opts=()=>SUBJ.map(([s])=>`<option value="${s}">${s}</option>`).join('');
 ['fSubj','lsSubj','hwSubj','mkSubj'].forEach(i=>$(i).innerHTML=opts());
 ['nSlot','jSlot'].forEach(i=>$(i).innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
 $('jSlot').value='p1';$('hwDue').value=dk(new Date(Date.now()+864e5));
@@ -396,11 +815,16 @@ function render(){
   $('cnBar').style.width=Math.min(100,wkMin/70*100)+'%';$('cnWeek').textContent=wkMin+' min in the last 7 days'+(wkMin>=70?' · goal reached!':'');
   $('subjects').innerHTML=SUBJ.map(([s,g])=>{const m=S.marks.filter(x=>x.s===s).slice(-8),last=m[m.length-1],prev=m[m.length-2];
     const tr=last&&prev?(last.v>prev.v?`<span style="color:var(--hi)">▲ ${last.v-prev.v}</span>`:last.v<prev.v?`<span class="late">▼ ${prev.v-last.v}</span>`:'same'):'';
-    return `<div class="subj"><div class="head"><b>${s} <span class="tag">${g}</span></b><span>${last?`<b class="num">${+last.v}%</b> ${tr}`:'<span class="muted">No marks yet</span>'}</span></div>${m.length?`<div class="bars">${m.map(x=>`<i class="${x.v<50?'low':''}" style="height:${Math.max(4,+x.v||0)}%" title="${esc(x.l)}: ${+x.v}%"></i>`).join('')}</div>`:''}</div>`}).join('');
+    return `<div class="subj"><div class="head"><b>${s} <span class="tag">${S.lv[s]||g}</span></b><span>${last?`<b class="num">${+last.v}%</b> ${tr}`:'<span class="muted">No marks yet</span>'}</span></div>${m.length?`<div class="bars">${m.map(x=>`<i class="${x.v<50?'low':''}" style="height:${Math.max(4,+x.v||0)}%" title="${esc(x.l)}: ${+x.v}%"></i>`).join('')}</div>`:''}</div>`}).join('');
   $('rwList').innerHTML=S.rewards.map((r,i)=>`<li><span class="txt">${esc(r.n)}</span><span class="xp">${+r.c}</span><button class="acc sm" data-buy="${i}" ${S.coins<r.c?'disabled':''}>Redeem</button><button class="ghost sm po" data-rdel="${i}" aria-label="Delete reward">✕</button></li>`).join('');
   $('capNote').textContent='Earned from focus sessions. Daily limit: '+(S.cap>=9999?'none':S.cap+' min')+', used today: '+usedOnS(S,dk())+' min.';
   $('notes').innerHTML=S.notes.filter(n=>n.d>=wkK).slice(-2).reverse().map(n=>`<div class="note"><b>From your parents</b> · ${fmtD(n.d)}${n.x?` · +${+n.x} XP`:''}<br>${esc(n.t)}</div>`).join('');
   $('rqList').innerHTML=S.redeemed.slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.n)}</span><span class="tag">${r.st==='pending'?'Waiting for parent':r.st==='given'?'Approved':'Declined · refunded'}</span></li>`).join('');
+  const qzToday=S.quiz.some(r=>r.mode==='daily'&&r.d===dk());
+  $('tdChal').textContent=qzToday?'Done today. Come back tomorrow for a new one, or practise more in Learn.':'5 quick questions from your weakest topics. +30 XP bonus.';$('tdGo').textContent=qzToday?'Practise more':'Start 5 questions';
+  const up=S.exams.filter(x=>x.dt>=dk()).sort((x,y)=>x.dt.localeCompare(y.dt));
+  $('exList').innerHTML=up.map(x=>{const n=Math.round((new Date(x.dt+'T00:00')-new Date(dk()+'T00:00'))/864e5);return `<li><span class="txt"><b>${esc(x.n)}</b><br><span class="muted">${fmtD(x.dt)}</span></span><span class="tag">${n===0?'Today':n===1?'Tomorrow':'in '+n+' days'}</span><button class="ghost sm" data-exdel="${esc(x.id)}" aria-label="Remove">✕</button></li>`}).join('')||'<li class="muted">No tests added. Add your next test so you can plan revision.</li>';
+  renderLearn();
   if(role==='parent')renderParent();renderTimer()}
 const last7=()=>[...Array(7)].map((_,i)=>dk(new Date(Date.now()-(6-i)*864e5)));
 const usedOn=k=>usedOnS(S,k);
@@ -413,9 +837,14 @@ function renderParent(){const w=weekStats();
   $('pRw').innerHTML=S.redeemed.filter(r=>r.st==='pending').map(r=>`<li><span class="txt">${esc(r.n)}<br><span class="muted">${+r.c} coins · ${fmtD(r.d)}</span></span><button class="sm" data-give="${esc(r.id)}">Give</button><button class="ghost sm" data-decl="${esc(r.id)}">Decline</button></li>`).join('')||'<li class="muted">No requests waiting.</li>';
   $('pLs').innerHTML=S.lessons.slice(-6).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}<br><span class="muted">${fmtD(l.d)} · focus ${+l.f}/3</span></span></li>`).join('')||'<li class="muted">No reflections yet.</li>';
   $('pSlot').textContent=SLOTS[cfg.slot]||'';
+  const wq=S.quiz.filter(r=>r.d>=w.ks[0]),qn=wq.reduce((a,r)=>a+r.n,0),qc=wq.reduce((a,r)=>a+r.c,0);
+  $('pLearn').innerHTML=[[wq.length,'quizzes done',wq.length<3],[qn,'questions answered'],[qn?Math.round(qc/qn*100)+'%':'–','average score',qn&&qc/qn<.5],[S.mist.length,'mistakes to review',S.mist.length>30]].map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
+  $('pMock').innerHTML=S.quiz.filter(r=>r.mode==='mock').slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)} · ${Math.round((r.secs||0)/60)} min</span></span><b class="num">${Math.round(r.c/r.n*100)}%</b></li>`).join('')||'<li class="muted">No mock tests yet.</li>';
+  const mm=mastery();$('pWeak').innerHTML=Object.entries(mm).filter(([,x])=>x.n>=4&&x.p<60).sort((x,y)=>x[1].p-y[1].p).slice(0,5).map(([k,x])=>`<li><span class="tag">${esc(topicSub(k))}</span><span class="txt">${esc(topicName(k))}</span><b class="num">${x.p}%</b></li>`).join('')||'<li class="muted">No weak topics yet (needs a few quizzes first).</li>';
+  if(!$('lvSet').contains(document.activeElement))$('lvSet').innerHTML=LSUBS.map(s=>`<div><label>${s}</label><select data-lvsub="${s}">${['G1','G2','G3'].map(g=>`<option ${S.lv[s]===g?'selected':''}>${g}</option>`).join('')}</select></div>`).join('')+`<div><label>School year</label><select id="secSel">${[1,2,3,4].map(n=>`<option value="${n}" ${S.sec===n?'selected':''}>Sec ${n}</option>`).join('')}</select></div>`;
   if(document.activeElement!==$('capSel'))$('capSel').value=String(S.cap);if(document.activeElement!==$('nmIn'))$('nmIn').value=S.name}
 function report(){const w=weekStats(),mk=SUBJ.map(([s])=>{const m=S.marks.filter(x=>x.s===s).pop();return m?s+' '+m.v+'%':null}).filter(Boolean).join(', ')||'none logged';
-  return `${S.name||'Level Up'} weekly report (${fmtD(w.ks[0])} – ${fmtD(w.ks[6])})\nActive days: ${w.act}/7 · Streak: ${streak()} days · Level ${Math.floor(S.xp/LV)+1}\nFocus sessions: ${w.f}\nHomework done: ${w.hw} (overdue now: ${w.od})\nChinese spoken: ${w.cn} min (goal 70)\nClass reflections: ${w.ls}, average focus ${w.lf}/3\nGame time: earned ${w.g} min, used ${w.u} min\nLatest marks: ${mk}`}
+  return `${S.name||'Level Up'} weekly report (${fmtD(w.ks[0])} – ${fmtD(w.ks[6])})\nActive days: ${w.act}/7 · Streak: ${streak()} days · Level ${Math.floor(S.xp/LV)+1}\nFocus sessions: ${w.f}\nHomework done: ${w.hw} (overdue now: ${w.od})\nChinese spoken: ${w.cn} min (goal 70)\nClass reflections: ${w.ls}, average focus ${w.lf}/3\nGame time: earned ${w.g} min, used ${w.u} min\nPractice: ${S.quiz.filter(r=>r.d>=w.ks[0]).length} quizzes, ${(q=>q.n?Math.round(q.c/q.n*100)+'% average':'none')(S.quiz.filter(r=>r.d>=w.ks[0]).reduce((a,r)=>({c:a.c+r.c,n:a.n+r.n}),{c:0,n:0}))}\nLatest marks: ${mk}`}
 
 /* ---------- focus timer (this device only) ---------- */
 let ticker=null;
@@ -443,7 +872,22 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   if(b.id==='gLeave'){if(!D.sure){D.sure=1;b.textContent='Tap again to start over';return}await Store.wipe();location.reload();return}
   if(!role)return;
   const P=role==='parent';
-  if(D.tab){cfg.ui.tab=D.tab;saveUI();scrollTo(0,0)}
+  if(D.tab){if(D.tab==='learn'&&cfg.ui.tab==='learn'&&!QZ)cfg.ui.lsub=null;cfg.ui.tab=D.tab;saveUI();scrollTo(0,0)}
+  else if(b.id==='tdGo'){if(S.quiz.some(r=>r.mode==='daily'&&r.d===dk())){cfg.ui.tab='learn';saveUI()}else daily()}
+  else if(D.exdel)act('exDel',{eid:D.exdel});
+  else if(D.lsub){cfg.ui.lsub=D.lsub;cfg.ui.llv=cfg.ui.llv||{};saveUI();scrollTo(0,0)}
+  else if(b.id==='lBack'){cfg.ui.lsub=null;saveUI()}
+  else if(D.prac)practise(D.prac,$('lsLv').value);
+  else if(b.id==='mockGo')mock(cfg.ui.lsub,$('lsLv').value,+$('lsSec').value);
+  else if(b.id==='revGo')review(cfg.ui.lsub);
+  else if(b.id==='lMistGo')review(null);
+  else if(D.opt&&QZ&&!QZ.done){const z=QZ;if(z.mode!=='mock'&&z.ans[z.i]!==undefined)return;z.ans[z.i]=+D.opt;renderRun()}
+  else if(b.id==='qCheck'&&QZ){const v=$('qNum').value.trim();if(!v)return toast('Type your answer first.');QZ.ans[QZ.i]=v;renderRun()}
+  else if(b.id==='qNext'&&QZ){const z=QZ;if(z.items[z.i].type==='num'&&z.mode==='mock')z.ans[z.i]=$('qNum').value.trim();if(z.i>=z.items.length-1)finishQuiz();else{z.i++;renderRun()}scrollTo(0,0)}
+  else if(b.id==='qPrev'&&QZ){const z=QZ;if(z.items[z.i].type==='num')z.ans[z.i]=$('qNum').value.trim();z.i--;renderRun()}
+  else if(b.id==='qQuit'){if(!D.sure){D.sure=1;b.textContent='Tap again to quit';return}QZ=null;clearInterval(qTick);render();renderRun()}
+  else if(b.id==='qDone'){QZ=null;render();renderRun()}
+  else if(b.id==='qAgain'&&QZ){const z=QZ;if(z.mode==='review')review(z.sub==='Mixed'?null:z.sub);else if(z.mode==='daily')startQuiz('daily','Mixed',null,'Daily challenge',z.items.map(it=>itemsFor(it.t,1)[0]).filter(Boolean));else if(z.mode==='mock')startQuiz('mock',z.sub,z.lv,z.title,mixed([...new Set(z.items.map(it=>it.t))],z.items.length));else practise(z.items[0].t,z.lv)}
   else if(b.id==='logout')logout();
   else if(D.start){cfg.ui.timer={end:Date.now()+D.start*6e4,m:+D.start,s:$('fSubj').value,by:role};saveUI()}
   else if(b.id==='fStop'){cfg.ui.timer=null;toast('Session stopped. Try a 15-min one next.');saveUI()}
@@ -481,6 +925,14 @@ onSub('hwF',()=>{const t=$('hwT').value.trim();if(!t)return;$('hwT').value='';ac
 onSub('mkF',()=>{const raw=$('mkS').value,v=Math.round(+raw);if(!raw||v<0||v>100)return toast('Enter a score from 0 to 100.');
   const l=$('mkL').value.trim()||'Test';$('mkS').value='';$('mkL').value='';act('mark',{s:$('mkSubj').value,v,l})});
 onSub('rwF',()=>{if(role!=='parent')return;const n=$('rwN').value.trim(),c=Math.round(+$('rwC').value);if(!n||!c)return;$('rwN').value='';$('rwC').value='';act('rwAdd',{n,c})});
+onSub('exF',()=>{const n=$('exN').value.trim(),dt=$('exD').value;if(!n||!dt)return toast('Add a name and a date.');$('exN').value='';$('exD').value='';act('exAdd',{eid:uid(),n,dt})});
+onSub('qF',()=>{const q=$('qQ').value.trim(),c=$('qC').value.trim(),w=['qW1','qW2','qW3'].map(i=>$(i).value.trim()).filter(Boolean);
+  if(!q||!c||!w.length)return toast('Add the question, the correct answer and at least one wrong answer.');if(w.includes(c))return toast('A wrong answer is the same as the correct one.');
+  const e=$('qE').value.trim();['qQ','qC','qW1','qW2','qW3','qE'].forEach(i=>$(i).value='');act('qAdd',{qid:uid(),s:cfg.ui.lsub,q,c,w,e})});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='qNum'){e.preventDefault();const b=$('qCheck')||$('qNext');if(b)b.click()}});
+document.addEventListener('change',e=>{const t=e.target;if(role!=='parent')return;if(t.dataset&&t.dataset.lvsub)act('lv',{sub:t.dataset.lvsub,v:t.value});else if(t.id==='secSel')act('sec',{v:+t.value})});
+$('lsLv').addEventListener('change',e=>{cfg.ui.llv=cfg.ui.llv||{};cfg.ui.llv[cfg.ui.lsub]=e.target.value;saveUI()});
+$('lsSec').addEventListener('change',e=>{cfg.ui.lsec=+e.target.value;saveUI()});
 onSub('noteF',()=>{if(role!=='parent')return;const t=$('noteT').value.trim(),x=+$('noteX').value;if(!t)return;$('noteT').value='';act('note',{t,x})});
 onSub('nmF',()=>{if(role!=='parent')return;const v=$('nmIn').value.trim();if(v)act('name',{v})});
 onSub('pinF',async()=>{if(role!=='parent')return;const v=$('pinNew').value;$('pinNew').value='';if(!pinOk(v))return toast('Use 4 to 6 digits.');const r=$('pinRole').value;act('pin',{role:r,h:await pinHash(r,v)})});
