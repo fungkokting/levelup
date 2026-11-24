@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Level Up Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Nunito+Sans:wght@400;600;700&family=Noto+Sans+SC:wght@500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a teen's game HUD — upbeat, never preachy; effort is the score, not marks.
+   IDEA: a game's level-up screen applied to school: XP, streaks, missions, a loot shop.
+   PICTURE: the HUD band — big level ring filling with XP, streak and banked game time beside it.
+   COLOUR and TYPE: deep growth-green band, white cards, coral for rewards; Outfit for numbers, Nunito Sans body.
+   LAYOUT: HUD on top, one tab at a time below, bottom tab bar on phones, top on iPad. */
+:root{color-scheme:light dark;--bg:light-dark(#f2f5ee,#0c1813);--ink:light-dark(#13241d,#ecf3ee);--mute:light-dark(#5b6b63,#9fb3a9);--card:light-dark(#fff,#14241d);--line:light-dark(#dbe3d6,#253a30);--brand:light-dark(#0e5a47,#127a5f);--hi:light-dark(#0e5a47,#5fd8ad);--acc:light-dark(#e8552c,#ff8058);--soft:light-dark(#e4efe8,#1b3329);--warn:light-dark(#b3261e,#ff8a80)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Nunito Sans",system-ui,sans-serif;overflow-x:clip;padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+h1,h2,h3,.num{font-family:Outfit,system-ui,sans-serif;line-height:1.1;margin:0}
+.hud{background:var(--brand);color:#fff;padding:calc(18px + env(safe-area-inset-top)) max(5vw,16px) 22px}
+.hud .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;max-width:1000px;margin:0 auto 14px}
+.hud h1{font-size:26px;font-weight:800}.hud .sub{opacity:.8;font-size:14px}
+.stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center;max-width:1000px;margin:0 auto}
+.ring{--p:0;width:132px;height:132px;border-radius:50%;background:conic-gradient(#ffd166 calc(var(--p)*1%),rgba(255,255,255,.18) 0);display:grid;place-items:center;transition:--p .6s}
+.ring>div{width:104px;height:104px;border-radius:50%;background:var(--brand);display:grid;place-items:center;text-align:center}
+.ring b{font:800 44px/1 Outfit,sans-serif}.ring small{display:block;font-size:13px;opacity:.85}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.chip{background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
+.chip .num{font-size:28px;font-weight:700;white-space:nowrap}.chip span{font-size:13px;opacity:.85;display:block}
+.title{font-size:15px;margin-top:6px}.title b{color:#ffd166}
+main{max-width:1000px;margin:0 auto;padding:18px max(4vw,14px)}
+section{display:none}section.on{display:block}
+h2{font-size:24px;margin:6px 0 12px}h3{font-size:18px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}.grid .card{margin:0}
+.mission{display:flex;gap:12px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.mission:first-of-type{border-top:0}
+.tick{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:800;color:#fff}
+.mission.done .tick{background:var(--hi);border-color:var(--hi)}.mission.done .txt{color:var(--mute);text-decoration:line-through}
+.txt{flex:1}.xp{font:700 14px Outfit,sans-serif;color:var(--acc);white-space:nowrap}
+button,select,input,textarea{font:inherit;font-size:16px;color:var(--ink)}
+button{min-height:44px;border:0;border-radius:12px;padding:0 16px;background:var(--hi);color:light-dark(#fff,#08140f);font-weight:700;cursor:pointer}
+button.ghost{background:var(--soft);color:var(--ink)}button.acc{background:var(--acc);color:#fff}button.sm{min-height:36px;padding:0 12px;font-size:14px}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+button:disabled{opacity:.45}
+select,input,textarea{min-height:44px;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:var(--bg);width:100%}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row>*{flex:1 1 140px}.row>button{flex:0 0 auto}
+label{font-size:14px;color:var(--mute);display:block;margin:8px 0 4px}
+.timer{font:800 clamp(64px,20vw,120px)/1 Outfit,sans-serif;text-align:center;margin:8px 0 14px;font-variant-numeric:tabular-nums}
+.list{list-style:none;margin:0;padding:0}.list li{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}.list li:first-child{border-top:0}
+.tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--soft);white-space:nowrap}
+.late{color:var(--warn);font-weight:700}.muted{color:var(--mute);font-size:14px}
+.zh{font:500 22px/1.5 "Noto Sans SC",sans-serif;margin:4px 0}
+.bar{height:12px;border-radius:99px;background:var(--soft);overflow:hidden}.bar i{display:block;height:100%;background:var(--hi);border-radius:99px}
+.bars{display:flex;align-items:flex-end;gap:4px;height:56px}.bars i{flex:1;background:var(--hi);border-radius:4px 4px 0 0;min-height:3px;position:relative}
+.bars i.low{background:var(--acc)}
+.subj{padding:12px 0;border-top:1px solid var(--line)}.subj:first-child{border-top:0}
+.subj .head{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(7,minmax(0,1fr));padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{background:none;color:var(--mute);border-radius:0;padding:6px 2px;font-size:12px;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+nav button.on{color:var(--hi)}
+@media(min-width:820px){body{padding-bottom:0}nav{position:sticky;top:0;bottom:auto;max-width:1000px;margin:0 auto;border:0;background:var(--bg);gap:8px;padding:12px max(4vw,14px) 0}nav button{flex-direction:row;font-size:15px;min-height:44px;border-radius:12px}nav button.on{background:var(--soft)}}
+@media(max-width:520px){.ring{width:104px;height:104px}.ring>div{width:82px;height:82px}.ring b{font-size:34px}.chip .num{font-size:22px}.chip{padding:8px}.stats{gap:12px}}
+.note{background:var(--soft);border-radius:16px;padding:14px 16px;margin-bottom:14px}.note b{color:var(--hi)}
+table{width:100%;border-collapse:collapse;font-size:15px}th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{font-size:13px;color:var(--mute);font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}.kpi{background:var(--soft);border-radius:14px;padding:10px 12px}.kpi .num{font-size:28px;font-weight:700}.kpi span{font-size:13px;color:var(--mute)}
+.kpi.bad .num{color:var(--warn)}
+#toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom));transform:translate(-50%,20px);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-weight:700;opacity:0;pointer-events:none;transition:.3s;max-width:90vw;text-align:center;z-index:9}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.gate{position:fixed;inset:0;z-index:20;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top)) max(5vw,16px) 40px}
+.gate .wrap{max-width:560px;margin:0 auto}
+.gate h1{font-size:44px;font-weight:800;color:var(--hi);margin:0 0 4px}
+.who{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;margin:14px 0}
+.who button{min-height:96px;font-size:18px;background:var(--card);color:var(--ink);border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.who button small{font-weight:600;color:var(--mute);font-size:13px}
+.who button.on{border-color:var(--hi);background:var(--soft)}
+.hidden{display:none!important}
+body.student .po{display:none!important}
+.hud .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.hud .out{background:rgba(255,255,255,.16);color:#fff;min-height:36px;font-size:14px;padding:0 12px}
+.code{font:700 22px Outfit,sans-serif;letter-spacing:.04em;overflow-wrap:anywhere}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ffd166;margin-right:6px}.dot.ok{background:#7CF2B4}
+</style>
+</head>
+<body>
+<header class="hud">
+  <div class="top"><div><h1 id="hName">Level Up</h1><span class="sub" id="hSync"></span></div>
+    <div class="acts"><span class="sub" id="hWho"></span><button class="out" id="logout">Log out</button></div></div>
+  <div class="stats">
+    <div class="ring" id="ring"><div><div><small>Level</small><b id="lv">1</b></div></div></div>
+    <div>
+      <div class="chips">
+        <div class="chip"><div class="num" id="streak">0</div><span>day streak</span></div>
+        <div class="chip"><div class="num" id="coins">0</div><span>coins</span></div>
+        <div class="chip"><div class="num" id="bank">0m</div><span>game time</span></div>
+      </div>
+      <div class="title" id="title"></div>
+    </div>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main>
+  <section id="today">
+    <div id="notes"></div>
+    <h2>Today's missions</h2>
+    <div class="card" id="missions"></div>
+    <div class="grid">
+      <div class="card"><h3>Due soon</h3><ul class="list" id="dueSoon"></ul></div>
+      <div class="card"><h3>Log a win</h3><p class="muted">Anything you did well today, big or small. Proud moments count.</p>
+        <form id="winF" class="row"><input id="winT" placeholder="e.g. Asked teacher a question in Math" maxlength="120"><button>Add +5</button></form>
+        <ul class="list" id="winList" style="margin-top:8px"></ul></div>
+    </div>
+  </section>
+
+  <section id="focus">
+    <h2>Focus session</h2>
+    <div class="card">
+      <div class="row"><div><label for="fSubj">Subject</label><select id="fSubj"></select></div></div>
+      <div class="timer" id="clock">25:00</div>
+      <div class="row" id="fBtns"></div>
+      <p class="muted">Phone face-down, games closed. Finish a 25-min session to earn 40 XP and 15 min of game time. Stopping early earns nothing, but you can always try again.</p>
+    </div>
+    <div class="card"><h3>After a lesson: one thing I learned</h3><p class="muted">Write it within the day. It trains you to listen for something worth writing down in class.</p>
+      <form id="lsF"><div class="row"><select id="lsSubj"></select><select id="lsFocus"><option value="3">Focused most of the lesson</option><option value="2">Focused about half</option><option value="1">Drifted off a lot</option></select></div>
+      <label for="lsT">One thing I learned</label><textarea id="lsT" rows="2" maxlength="200" placeholder="e.g. Ionic bonds form when electrons transfer"></textarea>
+      <button style="margin-top:8px">Save +10</button></form>
+      <ul class="list" id="lsList" style="margin-top:8px"></ul></div>
+  </section>
+
+  <section id="homework">
+    <h2>Homework</h2>
+    <div class="card"><form id="hwF"><div class="row"><select id="hwSubj"></select><input id="hwDue" type="date"></div>
+      <label for="hwT">What's the task?</label><div class="row"><input id="hwT" maxlength="120" placeholder="e.g. Math worksheet 3.2 Q1–10"><button>Add</button></div></form></div>
+    <div class="card"><h3>To do</h3><ul class="list" id="hwList"></ul></div>
+    <div class="card"><h3>Done recently</h3><ul class="list" id="hwDone"></ul></div>
+  </section>
+
+  <section id="chinese">
+    <h2>华文 Chinese corner</h2>
+    <div class="card"><h3>Today's speaking challenge</h3>
+      <div class="zh" id="zh"></div><p class="muted" id="zhEn"></p>
+      <button class="ghost sm" id="zhNext">Another one</button></div>
+    <div class="card"><h3>I spoke Chinese for…</h3>
+      <div class="row"><select id="cnWho"><option>with family</option><option>with friends</option><option>in class</option><option>watching/listening</option></select></div>
+      <div class="row" style="margin-top:8px"><button data-cn="5">5 min</button><button data-cn="10">10 min</button><button data-cn="20">20 min</button></div>
+      <label>This week · goal 70 min</label><div class="bar"><i id="cnBar"></i></div><p class="muted" id="cnWeek"></p></div>
+    <div class="card"><h3>Family ideas</h3><ul class="list">
+      <li>Chinese-only dinner twice a week. Parents speak Chinese too.</li>
+      <li>He teaches a parent his favourite game, explaining only in Chinese.</li>
+      <li>Watch one short Chinese video or drama clip together and talk about it.</li>
+      <li>Order at the hawker centre in Chinese.</li></ul></div>
+  </section>
+
+  <section id="progress">
+    <h2>My subjects</h2>
+    <div class="card" id="subjects"></div>
+    <div class="card"><h3>Add a test or assignment mark</h3><form id="mkF"><div class="row"><select id="mkSubj"></select><input id="mkS" type="number" min="0" max="100" inputmode="decimal" placeholder="Score %"></div>
+      <label for="mkL">What was it?</label><div class="row"><input id="mkL" maxlength="60" placeholder="e.g. Term 1 WA1"><button>Add +10</button></div></form>
+      <p class="muted">Beat your last mark in a subject for +50 bonus XP. You're only racing yourself.</p></div>
+  </section>
+
+  <section id="rewards">
+    <h2>Reward shop</h2>
+    <div class="card"><h3>Game time bank</h3><p class="num" style="font-size:40px" id="bank2">0 min</p>
+      <div class="row"><button class="acc" data-use="15">Use 15 min</button><button class="acc" data-use="30">Use 30 min</button></div>
+      <p class="muted" id="capNote"></p></div>
+    <div class="card"><h3>Spend coins</h3><p class="muted">Redeeming sends a request to your parents. If they decline, you get the coins back.</p><ul class="list" id="rwList"></ul>
+      <ul class="list" id="rqList" style="margin-top:8px"></ul>
+      <form id="rwF" class="po" style="margin-top:10px"><label>Add a reward (parents only)</label><div class="row"><input id="rwN" maxlength="60" placeholder="Reward"><input id="rwC" type="number" min="10" placeholder="Coins"><button>Add</button></div></form></div>
+  </section>
+
+  <section id="parent">
+    <h2>Parent admin</h2>
+    <div class="card"><h3>Last 7 days</h3><div class="kpis" id="pKpi"></div>
+      <div class="row" style="margin-top:12px"><button class="ghost" id="repCopy">Copy weekly report</button></div></div>
+    <div class="card"><h3>Day by day</h3><div class="scroll"><table id="pWeek"></table></div></div>
+    <div class="card"><h3>Reward requests</h3><ul class="list" id="pRw"></ul></div>
+    <div class="card"><h3>Send encouragement</h3><p class="muted">It appears at the top of his Today screen. Praise effort, like "3 focus sessions this week", not just marks.</p>
+      <form id="noteF"><input id="noteT" maxlength="140" placeholder="e.g. Proud of you for finishing Chem on time!">
+      <div class="row" style="margin-top:8px"><select id="noteX"><option value="0">No bonus</option><option value="20">+20 XP</option><option value="50" selected>+50 XP</option><option value="100">+100 XP</option></select><button>Send</button></div></form></div>
+    <div class="card"><h3>Class reflections</h3><ul class="list" id="pLs"></ul></div>
+
+    <div class="card"><h3>Family sync</h3>
+      <p><span class="dot" id="pDot"></span><span id="pLive"></span></p>
+      <p class="muted">This device: <b id="pSlot"></b></p>
+      <label>Family code (needed to join another device)</label>
+      <p class="code" id="pCode">••••-••••-••••-••••</p><button class="ghost sm" id="codeShow">Show code</button>
+      <h3 style="margin-top:18px">Sync without live connection</h3>
+      <p class="muted">If the devices can't see each other, copy a sync code here and paste it into the other device. It's encrypted with your family code.</p>
+      <div class="row"><button class="ghost" id="mCopy">Copy sync code</button></div>
+      <textarea id="mIn" rows="2" placeholder="Paste a sync code from another device" style="margin-top:8px"></textarea>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="mMerge">Merge</button></div></div>
+
+    <div class="card"><h3>Settings</h3>
+      <label for="capSel">Daily game-time limit</label><select id="capSel"><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="9999">No limit</option></select>
+      <label for="nmIn">Student's name</label><form id="nmF" class="row"><input id="nmIn" maxlength="30"><button class="ghost">Save</button></form>
+      <label>Change a PIN</label><form id="pinF" class="row"><select id="pinRole"><option value="student">Student PIN</option><option value="parent">Parent PIN</option></select><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New 4–6 digits"><button class="ghost">Change</button></form>
+      <label>Remove all Level Up data from this device</label><button class="ghost" id="wipe">Reset this device</button></div>
+  </section>
+</main>
+
+<div class="gate" id="gate"><div class="wrap">
+  <h1>Level Up</h1>
+  <div id="gWelcome" class="hidden">
+    <p class="muted">Set up once on the first device, then join from the others with the family code.</p>
+    <div class="card"><h3>Start a new family</h3>
+      <form id="newF"><label for="nName">Student's name</label><input id="nName" maxlength="30" placeholder="e.g. Ethan" required>
+        <div class="row"><div><label for="nPP">Parent PIN</label><input id="nPP" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4–6 digits"></div>
+        <div><label for="nSP">Student PIN</label><input id="nSP" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4–6 digits"></div></div>
+        <label for="nSlot">This device is</label><select id="nSlot"></select>
+        <button style="margin-top:12px;width:100%">Create family</button></form></div>
+    <div class="card"><h3>Join an existing family</h3>
+      <form id="joinF"><label for="jCode">Family code</label><input id="jCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">
+        <label for="jSlot">This device is</label><select id="jSlot"></select>
+        <button class="ghost" style="margin-top:12px;width:100%">Join</button></form>
+      <p class="muted">Each device needs its own slot. Keep the first device open while the new one joins.</p></div>
+  </div>
+  <div id="gLogin" class="hidden">
+    <p class="muted" id="gSync"></p>
+    <div id="gReady">
+      <h3>Who's using Level Up?</h3>
+      <div class="who"><button id="wS" data-who="student"><span id="wName">Student</span><small>Student</small></button><button id="wP" data-who="parent">Parent<small>Administrator</small></button></div>
+      <form id="loginF" class="row"><input id="lPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN"><button>Log in</button></form>
+    </div>
+    <div id="gWait" class="card hidden"><h3>Waiting for family data</h3>
+      <p class="muted">Open Level Up on the first device so this one can copy the family's data. Or paste a sync code from that device (Parent admin → Family sync).</p>
+      <textarea id="gIn" rows="2" placeholder="Paste sync code"></textarea>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="gMerge">Merge</button><button class="ghost" id="gLeave">Start over</button></div></div>
+  </div>
+</div></div>
+<div id="toast" role="status"></div>
+<script>
+
+{
+const LV=250,PEERJS='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+const SUBJ=[['Math','G1'],['English','G2'],['Biology','G2'],['Chemistry','G2'],['Chinese','G1']];
+const TITLES=['Rookie','Starter','Grinder','Focused','Steady','Sharp','Locked-in','Pro','Elite','Legend'];
+const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone the best thing that happened at school today.'],['你最喜欢的游戏是什么？为什么？','What is your favourite game, and why?'],['用中文点一次饭菜或饮料。','Order food or a drink in Chinese once today.'],['跟家人说说你明天的计划。','Tell your family your plan for tomorrow.'],['介绍一个你很喜欢的朋友。','Describe a friend you really like.'],['今天的天气怎么样？你喜欢这样的天气吗？','How is the weather today? Do you like it?'],['如果你有一百块钱，你会买什么？','If you had $100, what would you buy?'],['说说你周末做了什么。','Talk about what you did at the weekend.'],['你觉得哪一科最难？为什么？','Which subject do you find hardest, and why?'],['教家人玩你喜欢的游戏，全程用中文。','Teach a family member your favourite game, only in Chinese.'],['说说一部你喜欢的电影或视频。','Talk about a movie or video you like.'],['你长大以后想做什么工作？','What job would you like to do when you grow up?'],['问爸爸妈妈他们小时候的一件趣事。','Ask your parents about a funny thing from their childhood.'],['描述一下你的房间。','Describe your room.'],['今天你学到了什么新东西？','What new thing did you learn today?'],['吃晚饭时，用中文说三件今天发生的事。','At dinner, say three things that happened today, in Chinese.']];
+const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
+const TABS=[['today','Today'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['progress','Marks'],['rewards','Rewards'],['parent','Admin']];
+const SLOTS={s:"Student's device",p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
+const PARENT_ONLY=new Set(['setup','pin','name','cap','rwAdd','rwDel','give','decl','note','restore']);
+const def=()=>({name:'',pins:{},xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60});
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const fmtD=k=>{const d=new Date(k+'T00:00');return isNaN(d)?'':d.toLocaleDateString('en-SG',{weekday:'short',day:'numeric',month:'short'})};
+const uid=()=>Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+const clone=o=>JSON.parse(JSON.stringify(o));
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2800)}
+
+/* ---------- on-device database: IndexedDB, with localStorage fallback ---------- */
+let DB=null;
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('levelup',1);r.onupgradeneeded=()=>{r.result.createObjectStore('acts',{keyPath:'id'});r.result.createObjectStore('meta')};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const tx=(st,mode,fn)=>new Promise((res,rej)=>{const t=DB.transaction(st,mode),q=fn(t.objectStore(st));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>rej(t.error)});
+const lsGet=(k,f)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const Store={
+  async init(){try{DB=await idb()}catch(e){DB=null}try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}},
+  async acts(){return DB?(await tx('acts','readonly',s=>s.getAll()))||[]:lsGet('lu-acts',[])},
+  async add(list){if(!list.length)return;if(DB)await tx('acts','readwrite',s=>{list.forEach(a=>s.put(a))});else lsSet('lu-acts',A)},
+  async cfg(){return DB?(await tx('meta','readonly',s=>s.get('cfg')))||{}:lsGet('lu-cfg',{})},
+  async saveCfg(){if(DB)await tx('meta','readwrite',s=>s.put(cfg,'cfg'));else lsSet('lu-cfg',cfg)},
+  async wipe(){if(DB)await tx('acts','readwrite',s=>s.clear()),await tx('meta','readwrite',s=>s.clear());try{localStorage.removeItem('lu-acts');localStorage.removeItem('lu-cfg')}catch(e){}}
+};
+
+/* ---------- encryption with a key made from the family code ---------- */
+const te=new TextEncoder(),td=new TextDecoder();
+const b64=u=>{let s='';for(let i=0;i<u.length;i+=32768)s+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(s)};
+const ub64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const sha=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode(s)));
+const hex=u=>[...u].map(x=>x.toString(16).padStart(2,'0')).join('');
+let KEY=null;
+async function makeKey(){KEY=await crypto.subtle.importKey('raw',await sha('levelup-key:'+cfg.fam),'AES-GCM',false,['encrypt','decrypt'])}
+async function seal(bytes){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},KEY,bytes)),o=new Uint8Array(12+ct.length);o.set(iv);o.set(ct,12);return b64(o)}
+async function unseal(s){const u=ub64(s);return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:u.slice(0,12)},KEY,u.slice(12)))}
+const pipe=async(u,stream)=>new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(stream)).arrayBuffer());
+const pinHash=async(role,pin)=>hex(await sha('pin:'+cfg.fam+':'+role+':'+pin));
+
+/* ---------- state = every action from every device, replayed in time order ---------- */
+let cfg={},A=[],have=new Set(),S=def(),role=null,peerTxt='',peerOk=false;
+const cmp=(a,b)=>(a.ts-b.ts)||(a.id<b.id?-1:a.id>b.id?1:0);
+const dayOf=(S,d)=>S.log[d]||(S.log[d]={f:0,cn:0,hw:0,ls:0,bonus:0,g:0});
+const usedOnS=(S,d)=>S.used.filter(u=>u.d===d).reduce((a,u)=>a+u.m,0);
+function gainS(S,d,x,why,mins=0){const b=Math.floor(S.xp/LV);S.xp+=x;S.coins+=x;S.bank+=mins;const L=dayOf(S,d);if(mins)L.g=(L.g||0)+mins;
+  let m='+'+x+' XP · '+why+(mins?' · +'+mins+' min game time':'');
+  if(!L.bonus&&L.f&&L.cn&&L.hw&&L.ls){L.bonus=1;S.xp+=50;S.coins+=50;m+=' · All missions done! +50 bonus'}
+  if(Math.floor(S.xp/LV)>b)m='LEVEL UP! You reached level '+(Math.floor(S.xp/LV)+1)+'. '+m;return m}
+const R={
+  setup:(S,a)=>{if(S.pins.parent)return '';S.name=a.name;S.pins={parent:a.pp,student:a.sp};return 'Family created'},
+  pin:(S,a)=>{S.pins[a.role]=a.h;return (a.role==='parent'?'Parent':'Student')+' PIN changed'},
+  name:(S,a)=>{S.name=a.v;return 'Name saved'},
+  restore:(S,a)=>{const k={name:S.name,pins:S.pins};for(const x of Object.keys(S))delete S[x];Object.assign(S,def(),a.state,k);return 'Earlier progress carried over'},
+  focus:(S,a)=>{dayOf(S,a.d).f++;return gainS(S,a.d,a.m===25?40:20,a.m+'-min '+a.s+' focus',a.m===25?15:10)},
+  hwAdd:(S,a)=>{S.hw.push({id:a.hid,s:a.s,t:a.t,due:a.due,done:null});return 'Homework added'},
+  hwDone:(S,a)=>{const h=S.hw.find(x=>x.id===a.hid);if(!h||h.done)return '';h.done=a.d;dayOf(S,a.d).hw++;const e=h.done<=h.due;return gainS(S,a.d,e?40:30,'homework done'+(e?' on time':''))},
+  hwDel:(S,a)=>{S.hw=S.hw.filter(x=>x.id!==a.hid);return ''},
+  cn:(S,a)=>{S.cnlog.push({d:a.d,m:a.m,w:a.w});dayOf(S,a.d).cn+=a.m;return gainS(S,a.d,Math.round(a.m*2.5),'Chinese '+a.w)},
+  win:(S,a)=>{S.wins.push({t:a.t,d:a.d});return gainS(S,a.d,5,'win logged')},
+  lesson:(S,a)=>{S.lessons.push({s:a.s,t:a.t,f:a.f,d:a.d});dayOf(S,a.d).ls++;return gainS(S,a.d,10,'lesson reflection')},
+  mark:(S,a)=>{const p=S.marks.filter(x=>x.s===a.s).pop();S.marks.push({s:a.s,v:a.v,l:a.l,d:a.d});
+    return p&&a.v>p.v?gainS(S,a.d,60,a.s+' improved by '+(a.v-p.v)):gainS(S,a.d,10,'mark logged. Every mark is data, not a verdict')},
+  use:(S,a)=>{if(S.bank<a.m)return{err:'Not enough game time banked yet. Do a focus session!'};
+    if(usedOnS(S,a.d)+a.m>S.cap)return{err:'Daily limit is '+S.cap+' min. The rest stays banked for tomorrow.'};
+    S.bank-=a.m;S.used.push({d:a.d,m:a.m});return 'Enjoy your '+a.m+' min. Have fun!'},
+  redeem:(S,a)=>{const r=S.rewards.find(x=>x.n===a.n);if(!r||S.coins<r.c)return{err:'Not enough coins yet'};S.coins-=r.c;
+    S.redeemed.push({id:a.rid,n:r.n,c:r.c,d:a.d,st:'pending'});return 'Request sent: '+r.n+'. Your parents will approve it.'},
+  rwAdd:(S,a)=>{if(!S.rewards.some(x=>x.n===a.n))S.rewards.push({n:a.n,c:a.c});return 'Reward added'},
+  rwDel:(S,a)=>{S.rewards=S.rewards.filter(x=>x.n!==a.n);return 'Reward removed'},
+  give:(S,a)=>{const r=S.redeemed.find(x=>x.id===a.rid);if(!r||r.st!=='pending')return '';r.st='given';return 'Marked as given'},
+  decl:(S,a)=>{const r=S.redeemed.find(x=>x.id===a.rid);if(!r||r.st!=='pending')return '';r.st='declined';S.coins+=r.c;return 'Declined, coins refunded'},
+  note:(S,a)=>{S.notes.push({t:a.t,x:a.x,d:a.d});return a.x?gainS(S,a.d,a.x,'encouragement sent'):'Message sent'},
+  cap:(S,a)=>{S.cap=a.v;return 'Daily limit set'}
+};
+function apply(S,a){if(PARENT_ONLY.has(a.type)&&a.by!=='parent')return '';try{return R[a.type](S,a)}catch(e){return ''}}
+function replay(){S=def();for(const a of A)apply(S,a)}
+async function act(type,args={},by=role){
+  const ts=Math.max(Date.now(),A.length?A[A.length-1].ts+1:0),a=Object.assign({id:uid(),ts,d:dk(),by,type},args);
+  const probe=clone(S),r=apply(probe,a);if(r&&r.err)return toast(r.err);
+  A.push(a);have.add(a.id);if(A.length>1&&cmp(A[A.length-2],a)>0){A.sort(cmp);replay()}else S=probe;
+  await Store.add([a]);broadcast([a]);if(r)toast(r);render()}
+async function merge(list,from){let added=[];
+  for(const a of list){if(a&&typeof a.id==='string'&&!have.has(a.id)&&R[a.type]&&typeof a.ts==='number'){A.push(a);have.add(a.id);added.push(a)}}
+  if(added.length){A.sort(cmp);replay();await Store.add(added);render();if(from)toast('Synced '+added.length+' update'+(added.length>1?'s':'')+' from '+from)}
+  return added.length}
+
+/* ---------- live sync: devices talk directly (WebRTC), PeerJS only helps them find each other ---------- */
+let peer=null,pre='',conns={};
+const loadPeer=()=>new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src=PEERJS;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
+function setPeer(t,ok=false){peerTxt=t;peerOk=ok;renderSync()}
+function liveNames(){return Object.keys(conns).filter(k=>conns[k].open).map(k=>SLOTS[k]||k)}
+function updPeer(){const n=liveNames();n.length?setPeer('Live · connected to '+n.join(', '),true):setPeer(peer&&peer.open?'Online · waiting for other devices to open Level Up':'Connecting…')}
+async function send(c,obj){try{c.send(await seal(te.encode(JSON.stringify(obj))))}catch(e){}}
+function broadcast(list){for(const c of Object.values(conns))if(c.open)send(c,{t:'acts',acts:list})}
+function wire(c){const slot=c.peer.slice(pre.length);
+  c.on('open',()=>{conns[slot]=c;updPeer();send(c,{t:'ids',ids:[...have]})});
+  c.on('data',async d=>{let m;try{m=JSON.parse(td.decode(await unseal(String(d))))}catch(e){return}
+    if(m.t==='ids'&&Array.isArray(m.ids)){const theirs=new Set(m.ids),miss=A.filter(a=>!theirs.has(a.id));if(miss.length)send(c,{t:'acts',acts:miss})}
+    else if(m.t==='acts'&&Array.isArray(m.acts))merge(m.acts,SLOTS[slot]||'another device')});
+  c.on('close',()=>{if(conns[slot]===c)delete conns[slot];updPeer()});
+  c.on('error',()=>{})}
+function dialAll(){if(!peer||!peer.open)return;for(const s of Object.keys(SLOTS))if(s!==cfg.slot&&!(conns[s]&&conns[s].open))wire(peer.connect(pre+s,{reliable:true}))}
+async function startPeer(){
+  if(!window.RTCPeerConnection||!window.WebSocket)return setPeer('Live sync not supported here · use sync codes');
+  try{await loadPeer()}catch(e){return setPeer('Live sync unavailable offline · changes are saved on this device')}
+  pre='lu'+hex(await sha('peer:'+cfg.fam)).slice(0,24);
+  peer=new Peer(pre+cfg.slot);setPeer('Connecting…');
+  peer.on('open',()=>{updPeer();dialAll()});
+  peer.on('connection',wire);
+  peer.on('disconnected',()=>{setPeer('Reconnecting…');setTimeout(()=>{try{peer.reconnect()}catch(e){}},4000)});
+  peer.on('error',e=>{if(e.type==='peer-unavailable')return;if(e.type==='unavailable-id')setPeer('Another device or browser tab is already using the "'+SLOTS[cfg.slot]+'" slot');else if(e.type==='network'||e.type==='server-error')setPeer('No internet · changes are saved on this device');});
+  setInterval(dialAll,20000);
+  addEventListener('online',()=>{try{if(peer.disconnected)peer.reconnect()}catch(e){}dialAll()})}
+
+/* ---------- manual sync codes ---------- */
+async function syncCode(){let u=te.encode(JSON.stringify(A)),z=!!window.CompressionStream;if(z)u=await pipe(u,new CompressionStream('gzip'));return (z?'LUz.':'LU1.')+await seal(u)}
+async function readCode(s){s=s.trim().replace(/\s+/g,'');const z=s.startsWith('LUz.');if(!z&&!s.startsWith('LU1.'))throw 0;let u=await unseal(s.slice(4));if(z)u=await pipe(u,new DecompressionStream('gzip'));return JSON.parse(td.decode(u))}
+async function mergeCode(el){try{const n=await merge(await readCode(el.value));el.value='';toast(n?'Merged '+n+' updates':'Already up to date');render()}catch(e){toast('That sync code is not for this family, or it was cut off.')}}
+
+/* ---------- views ---------- */
+const day=()=>S.log[dk()]||{};
+function streak(){let n=0,d=new Date();const on=k=>{const l=S.log[k];return l&&(l.f||l.cn||l.hw||l.ls)};if(!on(dk(d)))d.setDate(d.getDate()-1);while(on(dk(d))){n++;d.setDate(d.getDate()-1)}return n}
+const opts=()=>SUBJ.map(([s,g])=>`<option value="${s}">${s} (${g})</option>`).join('');
+['fSubj','lsSubj','hwSubj','mkSubj'].forEach(i=>$(i).innerHTML=opts());
+['nSlot','jSlot'].forEach(i=>$(i).innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
+$('jSlot').value='p1';$('hwDue').value=dk(new Date(Date.now()+864e5));
+function renderSync(){const t=cfg.fam?peerTxt:'';$('hSync').innerHTML=t?`<span class="dot ${peerOk?'ok':''}"></span>${esc(t)}`:'';$('gSync').textContent=t;
+  $('pLive').textContent=t;$('pDot').className='dot'+(peerOk?' ok':'')}
+function renderGate(){const g=!role;$('gate').classList.toggle('hidden',!g);if(!g)return;
+  $('gWelcome').classList.toggle('hidden',!!cfg.fam);$('gLogin').classList.toggle('hidden',!cfg.fam);
+  const ready=!!S.pins.parent;$('gReady').classList.toggle('hidden',!ready);$('gWait').classList.toggle('hidden',ready);
+  $('wName').textContent=S.name||'Student'}
+function render(){
+  document.body.classList.toggle('student',role!=='parent');renderGate();renderSync();if(!role)return;
+  if(role!=='parent'&&cfg.ui.tab==='parent')cfg.ui.tab='today';
+  $('nav').innerHTML=TABS.filter(([k])=>k!=='parent'||role==='parent').map(([k,n])=>`<button data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${n}</button>`).join('');
+  $('nav').style.gridTemplateColumns=`repeat(${role==='parent'?7:6},minmax(0,1fr))`;
+  const lv=Math.floor(S.xp/LV)+1;$('lv').textContent=lv;$('ring').style.setProperty('--p',(S.xp%LV)/LV*100);
+  $('hName').textContent=S.name?S.name+"'s Level Up":'Level Up';$('hWho').textContent=role==='parent'?'Parent (admin)':'Student';
+  $('streak').textContent=streak();$('coins').textContent=S.coins;$('bank').textContent=S.bank+'m';$('bank2').textContent=S.bank+' min';
+  $('title').innerHTML=`<b>${TITLES[Math.min(lv-1,9)]}</b> · ${LV-S.xp%LV} XP to level ${lv+1}`;
+  document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===cfg.ui.tab));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===cfg.ui.tab));
+  const d=day(),M=[[d.hw,'Finish one homework task','+30','homework'],[d.f,'Do one focus session','+40','focus'],[d.cn,'Speak Chinese for 10 minutes','+25','chinese'],[d.ls,'Write one thing you learned in class','+10','focus']];
+  $('missions').innerHTML=M.map(([ok,t,x,tab])=>`<div class="mission ${ok?'done':''}"><div class="tick">${ok?'✓':''}</div><div class="txt">${t}</div>${ok?'':`<button class="ghost sm" data-tab="${tab}">Go</button>`}<span class="xp">${x}</span></div>`).join('')+`<p class="muted" style="margin:10px 0 0">${d.bonus?'All four done today. Nice work!':'Do all four today for +50 bonus XP.'}</p>`;
+  const todo=S.hw.filter(h=>!h.done).sort((a,b)=>String(a.due).localeCompare(b.due)),t=dk();
+  const hwLi=h=>`<li><span class="tag">${esc(h.s)}</span><span class="txt">${esc(h.t)}<br><span class="${h.due<t?'late':'muted'}">${h.due<t?'Overdue · ':'Due '}${fmtD(h.due)}</span></span><button class="sm" data-done="${esc(h.id)}">Done</button></li>`;
+  $('dueSoon').innerHTML=todo.slice(0,3).map(hwLi).join('')||'<li class="muted">Nothing due. Add homework in the Tasks tab.</li>';
+  $('hwList').innerHTML=todo.map(hwLi).join('')||'<li class="muted">All clear!</li>';
+  $('hwDone').innerHTML=S.hw.filter(h=>h.done).slice(-6).reverse().map(h=>`<li><span class="tag">${esc(h.s)}</span><span class="txt muted">${esc(h.t)}</span><button class="ghost sm" data-del="${esc(h.id)}">Remove</button></li>`).join('')||'<li class="muted">Nothing yet.</li>';
+  $('winList').innerHTML=S.wins.slice(-5).reverse().map(w=>`<li><span class="txt">${esc(w.t)}</span><span class="muted">${fmtD(w.d)}</span></li>`).join('')||'<li class="muted">Your wins will show here.</li>';
+  $('lsList').innerHTML=S.lessons.slice(-4).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}</span></li>`).join('');
+  const p=PROMPTS[cfg.ui.p%PROMPTS.length];$('zh').textContent=p[0];$('zhEn').textContent=p[1];
+  const wkK=dk(new Date(Date.now()-6*864e5)),wkMin=S.cnlog.filter(c=>c.d>=wkK).reduce((a,c)=>a+c.m,0);
+  $('cnBar').style.width=Math.min(100,wkMin/70*100)+'%';$('cnWeek').textContent=wkMin+' min in the last 7 days'+(wkMin>=70?' · goal reached!':'');
+  $('subjects').innerHTML=SUBJ.map(([s,g])=>{const m=S.marks.filter(x=>x.s===s).slice(-8),last=m[m.length-1],prev=m[m.length-2];
+    const tr=last&&prev?(last.v>prev.v?`<span style="color:var(--hi)">▲ ${last.v-prev.v}</span>`:last.v<prev.v?`<span class="late">▼ ${prev.v-last.v}</span>`:'same'):'';
+    return `<div class="subj"><div class="head"><b>${s} <span class="tag">${g}</span></b><span>${last?`<b class="num">${+last.v}%</b> ${tr}`:'<span class="muted">No marks yet</span>'}</span></div>${m.length?`<div class="bars">${m.map(x=>`<i class="${x.v<50?'low':''}" style="height:${Math.max(4,+x.v||0)}%" title="${esc(x.l)}: ${+x.v}%"></i>`).join('')}</div>`:''}</div>`}).join('');
+  $('rwList').innerHTML=S.rewards.map((r,i)=>`<li><span class="txt">${esc(r.n)}</span><span class="xp">${+r.c}</span><button class="acc sm" data-buy="${i}" ${S.coins<r.c?'disabled':''}>Redeem</button><button class="ghost sm po" data-rdel="${i}" aria-label="Delete reward">✕</button></li>`).join('');
+  $('capNote').textContent='Earned from focus sessions. Daily limit: '+(S.cap>=9999?'none':S.cap+' min')+', used today: '+usedOnS(S,dk())+' min.';
+  $('notes').innerHTML=S.notes.filter(n=>n.d>=wkK).slice(-2).reverse().map(n=>`<div class="note"><b>From your parents</b> · ${fmtD(n.d)}${n.x?` · +${+n.x} XP`:''}<br>${esc(n.t)}</div>`).join('');
+  $('rqList').innerHTML=S.redeemed.slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.n)}</span><span class="tag">${r.st==='pending'?'Waiting for parent':r.st==='given'?'Approved':'Declined · refunded'}</span></li>`).join('');
+  if(role==='parent')renderParent();renderTimer()}
+const last7=()=>[...Array(7)].map((_,i)=>dk(new Date(Date.now()-(6-i)*864e5)));
+const usedOn=k=>usedOnS(S,k);
+function weekStats(){const ks=last7(),L=k=>S.log[k]||{},sum=f=>ks.reduce((a,k)=>a+(L(k)[f]||0),0),ls=S.lessons.filter(l=>l.d>=ks[0]);
+  return{ks,f:sum('f'),hw:sum('hw'),cn:sum('cn'),ls:ls.length,lf:ls.length?(ls.reduce((a,l)=>a+l.f,0)/ls.length).toFixed(1):'–',g:sum('g'),u:ks.reduce((a,k)=>a+usedOn(k),0),act:ks.filter(k=>{const l=L(k);return l.f||l.cn||l.hw||l.ls}).length,od:S.hw.filter(h=>!h.done&&h.due<dk()).length}}
+function renderParent(){const w=weekStats();
+  const K=[[w.act+'/7','active days',w.act<4],[w.f,'focus sessions',w.f<3],[w.hw,'homework done'],[w.od,'overdue now',w.od>0],[w.cn+'m','Chinese spoken',w.cn<70],[w.lf+'/3','class focus (self-rated)',w.lf!=='–'&&w.lf<2],[w.u+'m','game time used'],[w.g+'m','game time earned']];
+  $('pKpi').innerHTML=K.map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
+  $('pWeek').innerHTML='<tr><th>Day</th><th>Focus</th><th>HW</th><th>Chinese</th><th>Reflect</th><th>Game</th></tr>'+w.ks.map(k=>{const l=S.log[k]||{};return `<tr><td>${fmtD(k)}</td><td>${+l.f||0}</td><td>${+l.hw||0}</td><td>${+l.cn||0}m</td><td>${+l.ls||0}</td><td>${usedOn(k)}m</td></tr>`}).join('');
+  $('pRw').innerHTML=S.redeemed.filter(r=>r.st==='pending').map(r=>`<li><span class="txt">${esc(r.n)}<br><span class="muted">${+r.c} coins · ${fmtD(r.d)}</span></span><button class="sm" data-give="${esc(r.id)}">Give</button><button class="ghost sm" data-decl="${esc(r.id)}">Decline</button></li>`).join('')||'<li class="muted">No requests waiting.</li>';
+  $('pLs').innerHTML=S.lessons.slice(-6).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}<br><span class="muted">${fmtD(l.d)} · focus ${+l.f}/3</span></span></li>`).join('')||'<li class="muted">No reflections yet.</li>';
+  $('pSlot').textContent=SLOTS[cfg.slot]||'';
+  if(document.activeElement!==$('capSel'))$('capSel').value=String(S.cap);if(document.activeElement!==$('nmIn'))$('nmIn').value=S.name}
+function report(){const w=weekStats(),mk=SUBJ.map(([s])=>{const m=S.marks.filter(x=>x.s===s).pop();return m?s+' '+m.v+'%':null}).filter(Boolean).join(', ')||'none logged';
+  return `${S.name||'Level Up'} weekly report (${fmtD(w.ks[0])} – ${fmtD(w.ks[6])})\nActive days: ${w.act}/7 · Streak: ${streak()} days · Level ${Math.floor(S.xp/LV)+1}\nFocus sessions: ${w.f}\nHomework done: ${w.hw} (overdue now: ${w.od})\nChinese spoken: ${w.cn} min (goal 70)\nClass reflections: ${w.ls}, average focus ${w.lf}/3\nGame time: earned ${w.g} min, used ${w.u} min\nLatest marks: ${mk}`}
+
+/* ---------- focus timer (this device only) ---------- */
+let ticker=null;
+function renderTimer(){const T=cfg.ui.timer;
+  if(T){const left=Math.max(0,T.end-Date.now()),m=Math.floor(left/6e4),s=Math.floor(left%6e4/1e3);$('clock').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(!$('fStop'))$('fBtns').innerHTML=`<button class="ghost" id="fStop">Stop (no reward)</button>`;$('fSubj').value=T.s;$('fSubj').disabled=true;
+    if(left<=0)finish();else if(!ticker)ticker=setInterval(renderTimer,1000)}
+  else{clearInterval(ticker);ticker=null;$('fSubj').disabled=false;$('clock').textContent='25:00';if(!$('fBtns').querySelector('[data-start]'))$('fBtns').innerHTML=`<button data-start="25">Start 25 min</button><button class="ghost" data-start="15">15 min</button>`}}
+function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.frequency.value=880;o.connect(a.destination);o.start();o.stop(a.currentTime+.4)}catch(e){}}
+function finish(){const T=cfg.ui.timer;cfg.ui.timer=null;clearInterval(ticker);ticker=null;Store.saveCfg();beep();act('focus',{m:T.m,s:T.s},T.by||role||'student')}
+const saveUI=()=>{Store.saveCfg();render()};
+
+/* ---------- login and setup ---------- */
+const ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const newCode=()=>{const r=crypto.getRandomValues(new Uint32Array(16));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
+const fmtCode=c=>c?c.replace(/(.{4})(?=.)/g,'$1-'):'';
+let who='student';
+async function begin(){await makeKey();await Store.saveCfg();replay();render();startPeer()}
+function logout(){role=null;if(cfg.session){delete cfg.session;Store.saveCfg()}render()}
+
+/* ---------- events ---------- */
+document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
+  if(D.who){who=D.who;$('wS').classList.toggle('on',who==='student');$('wP').classList.toggle('on',who==='parent');$('lPin').focus();return}
+  if(b.id==='gMerge')return mergeCode($('gIn'));
+  if(b.id==='gLeave'){if(!D.sure){D.sure=1;b.textContent='Tap again to start over';return}await Store.wipe();location.reload();return}
+  if(!role)return;
+  const P=role==='parent';
+  if(D.tab){cfg.ui.tab=D.tab;saveUI();scrollTo(0,0)}
+  else if(b.id==='logout')logout();
+  else if(D.start){cfg.ui.timer={end:Date.now()+D.start*6e4,m:+D.start,s:$('fSubj').value,by:role};saveUI()}
+  else if(b.id==='fStop'){cfg.ui.timer=null;toast('Session stopped. Try a 15-min one next.');saveUI()}
+  else if(D.done)act('hwDone',{hid:D.done});
+  else if(D.del)act('hwDel',{hid:D.del});
+  else if(D.cn)act('cn',{m:+D.cn,w:$('cnWho').value});
+  else if(b.id==='zhNext'){cfg.ui.p++;saveUI()}
+  else if(D.use)act('use',{m:+D.use});
+  else if(D.buy){const r=S.rewards[+D.buy];if(r)act('redeem',{rid:uid(),n:r.n})}
+  else if(D.rdel&&P){const r=S.rewards[+D.rdel];if(r)act('rwDel',{n:r.n})}
+  else if((D.give||D.decl)&&P)act(D.give?'give':'decl',{rid:D.give||D.decl});
+  else if(b.id==='repCopy')navigator.clipboard.writeText(report()).then(()=>toast('Report copied. Paste it into WhatsApp or Notes.'),()=>toast('Copy was blocked on this device.'));
+  else if(b.id==='codeShow'&&P){const sh=$('pCode').textContent.includes('•');$('pCode').textContent=sh?fmtCode(cfg.fam):'••••-••••-••••-••••';b.textContent=sh?'Hide code':'Show code'}
+  else if(b.id==='mCopy'&&P){const c=await syncCode();navigator.clipboard.writeText(c).then(()=>toast('Sync code copied ('+Math.ceil(c.length/1024)+' KB). Paste it on the other device.'),()=>{$('mIn').value=c;toast('Copy blocked. The code is in the box; select and copy it.')})}
+  else if(b.id==='mMerge'&&P)mergeCode($('mIn'));
+  else if(b.id==='wipe'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload()}
+});
+const onSub=(id,fn)=>$(id).addEventListener('submit',e=>{e.preventDefault();fn()});
+const pinOk=v=>/^\d{4,6}$/.test(v);
+onSub('newF',async()=>{const name=$('nName').value.trim(),pp=$('nPP').value,sp=$('nSP').value;
+  if(!name)return toast("Enter the student's name.");if(!pinOk(pp)||!pinOk(sp))return toast('PINs must be 4 to 6 digits.');if(pp===sp)return toast('Use different PINs for parent and student.');
+  cfg={fam:newCode(),slot:$('nSlot').value,ui:{tab:'parent',p:0,timer:null}};await makeKey();
+  const st=async r=>pinHash(r,r==='parent'?pp:sp);
+  role='parent';await act('setup',{name,pp:await st('parent'),sp:await st('student')});
+  const old=lsGet('levelup-base',null);if(old&&old.st&&old.st.xp)await act('restore',{state:Object.assign(clone(old.st),{pin:undefined})});
+  await begin();toast('Family created. Join other devices with the family code in Admin.')});
+onSub('joinF',async()=>{const c=$('jCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==16)return toast('The family code has 16 letters and numbers.');
+  cfg={fam:c,slot:$('jSlot').value,ui:{tab:'today',p:0,timer:null}};await begin();toast('Joining… keep the first device open.')});
+onSub('loginF',async()=>{const v=$('lPin').value;$('lPin').value='';if(!S.pins[who])return;
+  if(await pinHash(who,v)!==S.pins[who])return toast('Wrong PIN');
+  role=who;cfg.ui.tab=role==='parent'?'parent':'today';if(role==='student')cfg.session='student';await Store.saveCfg();render()});
+onSub('winF',()=>{const t=$('winT').value.trim();if(!t)return;$('winT').value='';act('win',{t})});
+onSub('lsF',()=>{const t=$('lsT').value.trim();if(!t)return toast('Write one thing you learned first.');$('lsT').value='';act('lesson',{s:$('lsSubj').value,t,f:+$('lsFocus').value})});
+onSub('hwF',()=>{const t=$('hwT').value.trim();if(!t)return;$('hwT').value='';act('hwAdd',{hid:uid(),s:$('hwSubj').value,t,due:$('hwDue').value||dk()})});
+onSub('mkF',()=>{const raw=$('mkS').value,v=Math.round(+raw);if(!raw||v<0||v>100)return toast('Enter a score from 0 to 100.');
+  const l=$('mkL').value.trim()||'Test';$('mkS').value='';$('mkL').value='';act('mark',{s:$('mkSubj').value,v,l})});
+onSub('rwF',()=>{if(role!=='parent')return;const n=$('rwN').value.trim(),c=Math.round(+$('rwC').value);if(!n||!c)return;$('rwN').value='';$('rwC').value='';act('rwAdd',{n,c})});
+onSub('noteF',()=>{if(role!=='parent')return;const t=$('noteT').value.trim(),x=+$('noteX').value;if(!t)return;$('noteT').value='';act('note',{t,x})});
+onSub('nmF',()=>{if(role!=='parent')return;const v=$('nmIn').value.trim();if(v)act('name',{v})});
+onSub('pinF',async()=>{if(role!=='parent')return;const v=$('pinNew').value;$('pinNew').value='';if(!pinOk(v))return toast('Use 4 to 6 digits.');const r=$('pinRole').value;act('pin',{role:r,h:await pinHash(r,v)})});
+$('capSel').addEventListener('change',e=>{if(role==='parent')act('cap',{v:+e.target.value})});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTimer();if(peer){try{if(peer.disconnected)peer.reconnect()}catch(e){}dialAll()}}});
+
+(async()=>{
+  if(!window.crypto||!crypto.subtle){$('gWelcome').classList.remove('hidden');toast('Open this app from an https:// address.');return}
+  await Store.init();cfg=await Store.cfg();cfg.ui=Object.assign({tab:'today',p:0,timer:null},cfg.ui||{});
+  A=(await Store.acts()).filter(a=>a&&a.id&&R[a.type]).sort(cmp);have=new Set(A.map(a=>a.id));
+  if(cfg.fam){await makeKey();replay();if(cfg.session==='student'&&S.pins.student)role='student';startPeer()}
+  render();
+})();
+}
+</script>
+</body>
+</html>
