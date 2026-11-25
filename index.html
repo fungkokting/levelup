@@ -221,6 +221,9 @@ details.card summary{cursor:pointer;min-height:32px}
 
   <section id="parent">
     <h2>Parent admin</h2>
+    <div class="card hidden" id="rcCard" style="border:2px solid var(--acc)"><h3>Save your recovery code</h3>
+      <p class="muted">If you forget the parent PIN, this code lets you reset it. It's shown only once: screenshot it or save it in Notes, and keep it away from your son.</p>
+      <p class="code" id="rcShow"></p><div class="row"><button class="ghost" id="rcCopy">Copy code</button><button id="rcOk">I've saved it</button></div></div>
     <div class="card"><h3>Last 7 days</h3><div class="kpis" id="pKpi"></div>
       <div class="row" style="margin-top:12px"><button class="ghost" id="repCopy">Copy weekly report</button></div></div>
     <div class="card"><h3>Day by day</h3><div class="scroll"><table id="pWeek"></table></div></div>
@@ -247,6 +250,7 @@ details.card summary{cursor:pointer;min-height:32px}
       <label>Subject levels and school year</label><div class="row" id="lvSet"></div>
       <label for="nmIn">Student's name</label><form id="nmF" class="row"><input id="nmIn" maxlength="30"><button class="ghost">Save</button></form>
       <label>Change a PIN</label><form id="pinF" class="row"><select id="pinRole"><option value="student">Student PIN</option><option value="parent">Parent PIN</option></select><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New 4–6 digits"><button class="ghost">Change</button></form>
+      <label>Recovery code for a forgotten parent PIN</label><button class="ghost" id="rcNew">Make a new recovery code</button>
       <label>Remove all Level Up data from this device</label><button class="ghost" id="wipe">Reset this device</button></div>
   </section>
 </main>
@@ -273,6 +277,14 @@ details.card summary{cursor:pointer;min-height:32px}
       <h3>Who's using Level Up?</h3>
       <div class="who"><button id="wS" data-who="student"><span id="wName">Student</span><small>Student</small></button><button id="wP" data-who="parent">Parent<small>Administrator</small></button></div>
       <form id="loginF" class="row"><input id="lPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN"><button>Log in</button></form>
+      <button class="ghost sm" id="fgBtn" style="margin-top:12px">Forgot parent PIN?</button>
+      <div id="fgBox" class="card hidden" style="margin-top:12px"><h3>Reset the parent PIN</h3>
+        <p class="muted">Enter the recovery code you saved when you created the family, then choose a new PIN.</p>
+        <form id="rcF"><input id="rcIn" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="Recovery code, e.g. ABCD-EFGH-JKMN">
+          <input id="rcPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New parent PIN (4–6 digits)" style="margin-top:8px">
+          <button style="margin-top:8px">Reset PIN</button></form>
+        <p class="muted" style="margin-top:16px">No recovery code? Start over on this device. This deletes everything saved on this device and you set up the family again. Other devices keep their own data.</p>
+        <button class="ghost" id="fgWipe">Start over on this device</button></div>
     </div>
     <div id="gWait" class="card hidden"><h3>Waiting for family data</h3>
       <p class="muted">Open Level Up on the first device so this one can copy the family's data. Or paste a sync code from that device (Parent admin → Family sync).</p>
@@ -582,7 +594,7 @@ const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone
 const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',learn:'<path d="M2 6l10-4 10 4-10 4z"/><path d="M6 8v6c3 3 9 3 12 0V8"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
 const TABS=[['today','Today'],['learn','Learn'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['rewards','Rewards'],['parent','Admin']];
 const SLOTS={s:"Student's device",p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
-const PARENT_ONLY=new Set(['setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
+const PARENT_ONLY=new Set(['rc','setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
 const def=()=>({name:'',pins:{},xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:3,quiz:[],mist:[],myq:[],exams:[]});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -630,7 +642,9 @@ function gainS(S,d,x,why,mins=0){const b=Math.floor(S.xp/LV);S.xp+=x;S.coins+=x;
   if(!L.bonus&&L.f&&L.cn&&L.hw&&L.ls){L.bonus=1;S.xp+=50;S.coins+=50;m+=' · All missions done! +50 bonus'}
   if(Math.floor(S.xp/LV)>b)m='LEVEL UP! You reached level '+(Math.floor(S.xp/LV)+1)+'. '+m;return m}
 const R={
-  setup:(S,a)=>{if(S.pins.parent)return '';S.name=a.name;S.pins={parent:a.pp,student:a.sp};return 'Family created'},
+  setup:(S,a)=>{if(S.pins.parent)return '';S.name=a.name;S.pins={parent:a.pp,student:a.sp};S.rcH=a.rc||null;return 'Family created'},
+  rc:(S,a)=>{S.rcH=a.h;return 'New recovery code saved'},
+  recover:(S,a)=>{if(!S.rcH)return{err:'This family has no recovery code yet. Use "Start over on this device".'};if(a.rc!==S.rcH)return{err:'That recovery code is not right.'};S.pins.parent=a.h;return 'Parent PIN reset. Log in with your new PIN.'},
   pin:(S,a)=>{S.pins[a.role]=a.h;return (a.role==='parent'?'Parent':'Student')+' PIN changed'},
   name:(S,a)=>{S.name=a.v;return 'Name saved'},
   restore:(S,a)=>{const k={name:S.name,pins:S.pins};for(const x of Object.keys(S))delete S[x];Object.assign(S,def(),a.state,k);return 'Earlier progress carried over'},
@@ -825,7 +839,7 @@ function render(){
   const up=S.exams.filter(x=>x.dt>=dk()).sort((x,y)=>x.dt.localeCompare(y.dt));
   $('exList').innerHTML=up.map(x=>{const n=Math.round((new Date(x.dt+'T00:00')-new Date(dk()+'T00:00'))/864e5);return `<li><span class="txt"><b>${esc(x.n)}</b><br><span class="muted">${fmtD(x.dt)}</span></span><span class="tag">${n===0?'Today':n===1?'Tomorrow':'in '+n+' days'}</span><button class="ghost sm" data-exdel="${esc(x.id)}" aria-label="Remove">✕</button></li>`}).join('')||'<li class="muted">No tests added. Add your next test so you can plan revision.</li>';
   renderLearn();
-  if(role==='parent')renderParent();renderTimer()}
+  renderRc();if(role==='parent')renderParent();renderTimer()}
 const last7=()=>[...Array(7)].map((_,i)=>dk(new Date(Date.now()-(6-i)*864e5)));
 const usedOn=k=>usedOnS(S,k);
 function weekStats(){const ks=last7(),L=k=>S.log[k]||{},sum=f=>ks.reduce((a,k)=>a+(L(k)[f]||0),0),ls=S.lessons.filter(l=>l.d>=ks[0]);
@@ -862,6 +876,9 @@ const ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode=()=>{const r=crypto.getRandomValues(new Uint32Array(16));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
 const fmtCode=c=>c?c.replace(/(.{4})(?=.)/g,'$1-'):'';
 let who='student';
+const newRc=()=>{const r=crypto.getRandomValues(new Uint32Array(12));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
+const rcHash=async c=>hex(await sha('rc:'+cfg.fam+':'+c.toUpperCase().replace(/[^A-Z0-9]/g,'')));
+function renderRc(){const c=cfg.ui.newRc;$('rcCard').classList.toggle('hidden',!c||role!=='parent');$('rcShow').textContent=c?fmtCode(c):''}
 async function begin(){await makeKey();await Store.saveCfg();replay();render();startPeer()}
 function logout(){role=null;if(cfg.session){delete cfg.session;Store.saveCfg()}render()}
 
@@ -869,6 +886,8 @@ function logout(){role=null;if(cfg.session){delete cfg.session;Store.saveCfg()}r
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
   if(D.who){who=D.who;$('wS').classList.toggle('on',who==='student');$('wP').classList.toggle('on',who==='parent');$('lPin').focus();return}
   if(b.id==='gMerge')return mergeCode($('gIn'));
+  if(b.id==='fgBtn'){$('fgBox').classList.toggle('hidden');return}
+  if(b.id==='fgWipe'){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload();return}
   if(b.id==='gLeave'){if(!D.sure){D.sure=1;b.textContent='Tap again to start over';return}await Store.wipe();location.reload();return}
   if(!role)return;
   const P=role==='parent';
@@ -903,6 +922,9 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   else if(b.id==='codeShow'&&P){const sh=$('pCode').textContent.includes('•');$('pCode').textContent=sh?fmtCode(cfg.fam):'••••-••••-••••-••••';b.textContent=sh?'Hide code':'Show code'}
   else if(b.id==='mCopy'&&P){const c=await syncCode();navigator.clipboard.writeText(c).then(()=>toast('Sync code copied ('+Math.ceil(c.length/1024)+' KB). Paste it on the other device.'),()=>{$('mIn').value=c;toast('Copy blocked. The code is in the box; select and copy it.')})}
   else if(b.id==='mMerge'&&P)mergeCode($('mIn'));
+  else if(b.id==='rcCopy'&&cfg.ui.newRc)navigator.clipboard.writeText(fmtCode(cfg.ui.newRc)).then(()=>toast('Recovery code copied'),()=>toast('Copy blocked. Take a screenshot instead.'));
+  else if(b.id==='rcOk'){delete cfg.ui.newRc;saveUI()}
+  else if(b.id==='rcNew'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: the old code will stop working';return}const c=newRc();cfg.ui.newRc=c;await act('rc',{h:await rcHash(c)});scrollTo(0,0);b.textContent='Make a new recovery code';delete D.sure}
   else if(b.id==='wipe'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload()}
 });
 const onSub=(id,fn)=>$(id).addEventListener('submit',e=>{e.preventDefault();fn()});
@@ -911,7 +933,7 @@ onSub('newF',async()=>{const name=$('nName').value.trim(),pp=$('nPP').value,sp=$
   if(!name)return toast("Enter the student's name.");if(!pinOk(pp)||!pinOk(sp))return toast('PINs must be 4 to 6 digits.');if(pp===sp)return toast('Use different PINs for parent and student.');
   cfg={fam:newCode(),slot:$('nSlot').value,ui:{tab:'parent',p:0,timer:null}};await makeKey();
   const st=async r=>pinHash(r,r==='parent'?pp:sp);
-  role='parent';await act('setup',{name,pp:await st('parent'),sp:await st('student')});
+  role='parent';const rc=newRc();cfg.ui.newRc=rc;await act('setup',{name,pp:await st('parent'),sp:await st('student'),rc:await rcHash(rc)});
   const old=lsGet('levelup-base',null);if(old&&old.st&&old.st.xp)await act('restore',{state:Object.assign(clone(old.st),{pin:undefined})});
   await begin();toast('Family created. Join other devices with the family code in Admin.')});
 onSub('joinF',async()=>{const c=$('jCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==16)return toast('The family code has 16 letters and numbers.');
@@ -919,6 +941,8 @@ onSub('joinF',async()=>{const c=$('jCode').value.toUpperCase().replace(/[^A-Z0-9
 onSub('loginF',async()=>{const v=$('lPin').value;$('lPin').value='';if(!S.pins[who])return;
   if(await pinHash(who,v)!==S.pins[who])return toast('Wrong PIN');
   role=who;cfg.ui.tab=role==='parent'?'parent':'today';if(role==='student')cfg.session='student';await Store.saveCfg();render()});
+onSub('rcF',async()=>{const c=$('rcIn').value,v=$('rcPin').value;if(!pinOk(v))return toast('The new PIN must be 4 to 6 digits.');if(c.replace(/[^A-Za-z0-9]/g,'').length!==12)return toast('The recovery code has 12 letters and numbers.');
+  $('rcPin').value='';await act('recover',{rc:await rcHash(c),h:await pinHash('parent',v)},null);if(S.pins.parent===await pinHash('parent',v)){$('rcIn').value='';$('fgBox').classList.add('hidden');who='parent';$('wP').classList.add('on');$('wS').classList.remove('on')}});
 onSub('winF',()=>{const t=$('winT').value.trim();if(!t)return;$('winT').value='';act('win',{t})});
 onSub('lsF',()=>{const t=$('lsT').value.trim();if(!t)return toast('Write one thing you learned first.');$('lsT').value='';act('lesson',{s:$('lsSubj').value,t,f:+$('lsFocus').value})});
 onSub('hwF',()=>{const t=$('hwT').value.trim();if(!t)return;$('hwT').value='';act('hwAdd',{hid:uid(),s:$('hwSubj').value,t,due:$('hwDue').value||dk()})});
