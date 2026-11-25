@@ -103,12 +103,15 @@ body.student .po{display:none!important}
 .tp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}.tp:first-child{border-top:0}
 .tp .bar{grid-column:1/2;height:8px}
 details.card summary{cursor:pointer;min-height:32px}
+.hud select{width:auto;min-height:36px;background:rgba(255,255,255,.16);color:#fff;border:0;font-size:14px;padding:4px 10px}.hud select option{color:#13241d}
+ul.notes{margin:4px 0 14px;padding-left:20px}ul.notes li{margin:6px 0;line-height:1.5}
+details summary{cursor:pointer;min-height:32px}
 </style>
 </head>
 <body>
 <header class="hud">
   <div class="top"><div><h1 id="hName">Level Up</h1><span class="sub" id="hSync"></span></div>
-    <div class="acts"><span class="sub" id="hWho"></span><button class="out" id="logout">Log out</button></div></div>
+    <div class="acts"><select id="kidSel" class="hidden" aria-label="Choose student"></select><span class="sub" id="hWho"></span><button class="out" id="logout">Log out</button></div></div>
   <div class="stats">
     <div class="ring" id="ring"><div><div><small>Level</small><b id="lv">1</b></div></div></div>
     <div>
@@ -193,6 +196,7 @@ details.card summary{cursor:pointer;min-height:32px}
     <div id="lSub" class="hidden">
       <button class="ghost sm" id="lBack">← All subjects</button>
       <h2 id="lsT" style="margin-top:12px"></h2>
+      <div id="lNote" class="card hidden"></div>
       <div class="card"><div class="row"><div><label for="lsLv">Level</label><select id="lsLv"><option>G1</option><option>G2</option><option>G3</option></select></div>
         <div><label for="lsSec">Topics up to</label><select id="lsSec"><option value="1">Sec 1</option><option value="2">Sec 2</option><option value="3">Sec 3</option><option value="4">Sec 4</option></select></div></div>
         <p class="muted" id="lsNote"></p>
@@ -227,6 +231,13 @@ details.card summary{cursor:pointer;min-height:32px}
     <div class="card"><h3>Last 7 days</h3><div class="kpis" id="pKpi"></div>
       <div class="row" style="margin-top:12px"><button class="ghost" id="repCopy">Copy weekly report</button></div></div>
     <div class="card"><h3>Day by day</h3><div class="scroll"><table id="pWeek"></table></div></div>
+    <div class="card"><h3>Students</h3><ul class="list" id="kidList"></ul>
+      <details style="margin-top:10px"><summary><b>Add a student</b></summary>
+        <form id="kaF"><label for="kaName">Name</label><input id="kaName" maxlength="30" placeholder="e.g. Chloe">
+          <div class="row"><div><label for="kaStage">School</label><select id="kaStage"><option value="P">Primary</option><option value="S">Secondary</option></select></div><div><label for="kaYear">Year</label><select id="kaYear"></select></div></div>
+          <label for="kaPin">Their PIN</label><input id="kaPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4–6 digits">
+          <button style="margin-top:10px">Add student</button></form></details>
+      <p class="muted">The dashboard below shows: <b id="pStuName"></b>. Switch students with the menu at the top.</p></div>
     <div class="card"><h3>Learning this week</h3><div class="kpis" id="pLearn"></div><h3 style="margin-top:14px">Mock tests</h3><ul class="list" id="pMock"></ul><h3 style="margin-top:14px">Topics to work on</h3><ul class="list" id="pWeak"></ul></div>
     <div class="card"><h3>Reward requests</h3><ul class="list" id="pRw"></ul></div>
     <div class="card"><h3>Send encouragement</h3><p class="muted">It appears at the top of his Today screen. Praise effort, like "3 focus sessions this week", not just marks.</p>
@@ -248,8 +259,8 @@ details.card summary{cursor:pointer;min-height:32px}
     <div class="card"><h3>Settings</h3>
       <label for="capSel">Daily game-time limit</label><select id="capSel"><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1.5 hours</option><option value="120">2 hours</option><option value="9999">No limit</option></select>
       <label>Subject levels and school year</label><div class="row" id="lvSet"></div>
-      <label for="nmIn">Student's name</label><form id="nmF" class="row"><input id="nmIn" maxlength="30"><button class="ghost">Save</button></form>
-      <label>Change a PIN</label><form id="pinF" class="row"><select id="pinRole"><option value="student">Student PIN</option><option value="parent">Parent PIN</option></select><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New 4–6 digits"><button class="ghost">Change</button></form>
+      <label for="nmIn">Student's name (student shown)</label><form id="nmF" class="row"><input id="nmIn" maxlength="30"><button class="ghost">Save</button></form>
+      <label>Change a PIN</label><form id="pinF" class="row"><select id="pinRole"><option value="student">Student PIN (student shown)</option><option value="parent">Parent PIN</option></select><input id="pinNew" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="New 4–6 digits"><button class="ghost">Change</button></form>
       <label>Recovery code for a forgotten parent PIN</label><button class="ghost" id="rcNew">Make a new recovery code</button>
       <label>Remove all Level Up data from this device</label><button class="ghost" id="wipe">Reset this device</button></div>
   </section>
@@ -263,6 +274,8 @@ details.card summary{cursor:pointer;min-height:32px}
       <form id="newF"><label for="nName">Student's name</label><input id="nName" maxlength="30" placeholder="e.g. Ethan" required>
         <div class="row"><div><label for="nPP">Parent PIN</label><input id="nPP" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4–6 digits"></div>
         <div><label for="nSP">Student PIN</label><input id="nSP" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="4–6 digits"></div></div>
+        <div class="row"><div><label for="nStage">School</label><select id="nStage"><option value="S">Secondary</option><option value="P">Primary</option></select></div><div><label for="nYear">Year</label><select id="nYear"></select></div></div>
+        <p class="muted">You can add more students later in Admin.</p>
         <label for="nSlot">This device is</label><select id="nSlot"></select>
         <button style="margin-top:12px;width:100%">Create family</button></form></div>
     <div class="card"><h3>Join an existing family</h3>
@@ -275,7 +288,7 @@ details.card summary{cursor:pointer;min-height:32px}
     <p class="muted" id="gSync"></p>
     <div id="gReady">
       <h3>Who's using Level Up?</h3>
-      <div class="who"><button id="wS" data-who="student"><span id="wName">Student</span><small>Student</small></button><button id="wP" data-who="parent">Parent<small>Administrator</small></button></div>
+      <div class="who" id="whoBox"></div>
       <form id="loginF" class="row"><input id="lPin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="PIN"><button>Log in</button></form>
       <button class="ghost sm" id="fgBtn" style="margin-top:12px">Forgot parent PIN?</button>
       <div id="fgBox" class="card hidden" style="margin-top:12px"><h3>Reset the parent PIN</h3>
@@ -564,7 +577,7 @@ m_grad:()=>{const m=pick([-4,-3,-2,-1,1,2,3,4]),x1=ri(-5,5),y1=ri(-5,5),dx=ri(1,
   return num(`A line joins (${fN(x1)}, ${fN(y1)}) and (${fN(x2)}, ${fN(y2)}). What is the x-coordinate of its midpoint?`,(x1+x2)/2,`Midpoint x = (${fN(x1)} + ${fP(x2)}) ÷ 2 = ${fN((x1+x2)/2)}.`)},
 m_sim:()=>{const x=ri(-4,6),y=ri(-4,6);let a,b,c,d;do{a=ri(1,5);b=pick([-4,-3,-2,-1,1,2,3,4]);c=ri(1,5);d=pick([-4,-3,-2,-1,1,2,3,4])}while(a*d-b*c===0);
   const eq=(p,q,r)=>`${tm(p,'x')} ${sg2(q,'y')} = ${fN(r)}`,S=(u,w)=>`x = ${fN(u)}, y = ${fN(w)}`;
-  return mcq(`Solve the simultaneous equations:\n${eq(a,b,a*x+b*y)}\n${eq(c,d,c*x+d*y)}`,[S(x,y),S(y,x),S(-x,y),S(x,-y),S(x+1,y-1)],`Eliminate one unknown, then substitute back. Check: with x = ${fN(x)} and y = ${fN(y)}, both equations are true.`)},
+  return mcq(`Solve the simultaneous equations:\n${eq(a,b,a*x+b*y)}\n${eq(c,d,c*x+d*y)}`,[S(x,y),S(y,x),S(-x,y),S(x,-y),S(x+1,y-1),S(x+2,y),S(x,y+2)],`Eliminate one unknown, then substitute back. Check: with x = ${fN(x)} and y = ${fN(y)}, both equations are true.`)},
 m_prob:()=>{if(ri(0,1)){const r=ri(1,9),b=ri(1,9),g=ri(0,6),T=r+b+g;
     return mcq(`A bag has ${r} red, ${b} blue${g?` and ${g} green`:''} balls. One ball is picked at random. What is the probability that it is red?`,[frac(r,T),frac(b,T),frac(T-r,T),frac(r,T+1),frac(r+1,T)],`P(red) = number of red ÷ total = ${r}/${T} = ${frac(r,T)}.`)}
   const k=ri(1,4);return mcq(`A fair six-sided die is rolled. What is the probability of getting a number greater than ${k}?`,[frac(6-k,6),frac(k,6),frac(7-k,6),frac(1,6)],`Numbers greater than ${k}: ${6-k} out of 6, so ${frac(6-k,6)}.`)},
@@ -587,15 +600,278 @@ m_quad:()=>{const nz=[-7,-6,-5,-4,-3,-2,-1,1,2,3,4,5,6,7];let p=pick(nz),q=pick(
   return mcq(`Solve ${eq}`,[S(p,q),S(-p,-q),S(p,-q),S(-p,q),S(p+1,q)],`Factorise: (x ${sg(-p)})(x ${sg(-q)}) = 0, so x = ${fN(p)} or x = ${fN(q)}.`)}
 };
 
+/* ---------- primary school (P1–P6) topics: [key, subject, name, levels (1=Foundation, 2=Standard), first year, stage] ---------- */
+TOPICS.push(
+['p_wn','Math','Whole numbers & place value','12','1','P'],['p_addsub','Math','Addition & subtraction','12','1','P'],['p_muldiv','Math','Multiplication & division','12','2','P'],
+['p_money','Math','Money','12','2','P'],['p_time','Math','Time','12','2','P'],['p_meas','Math','Length, mass & volume','12','2','P'],['p_frac','Math','Fractions','12','3','P'],
+['p_area','Math','Area & perimeter','12','3','P'],['p_angle','Math','Angles & triangles','12','4','P'],['p_dec','Math','Decimals','12','4','P'],['p_pct','Math','Percentage','12','5','P'],
+['p_avg','Math','Average','12','5','P'],['p_ratio','Math','Ratio','2','5','P'],['p_speed','Math','Speed','2','6','P'],['p_alg','Math','Algebra','2','6','P'],
+['p_e_gram','English','Grammar','12','1','P'],['p_e_vocab','English','Vocabulary','12','1','P'],['p_e_punct','English','Punctuation','12','1','P'],['p_e_comp','English','Comprehension','12','2','P'],['p_e_synth','English','Synthesis & transformation','12','5','P'],
+['p_s_div','Science','Diversity of living things','12','3','P'],['p_s_mat','Science','Materials','12','3','P'],['p_s_mag','Science','Magnets','12','3','P'],['p_s_cyc','Science','Life cycles','12','3','P'],
+['p_s_plant','Science','Plant parts & functions','12','4','P'],['p_s_matter','Science','Matter & states','12','4','P'],['p_s_light','Science','Light & shadows','12','4','P'],['p_s_heat','Science','Heat & temperature','12','4','P'],
+['p_s_human','Science','Human body systems','12','5','P'],['p_s_water','Science','Water cycle','12','5','P'],['p_s_elec','Science','Electricity','12','5','P'],['p_s_force','Science','Forces & energy','12','6','P'],['p_s_env','Science','Food chains & environment','12','6','P'],
+['p_z_ci','Chinese','词语 Words','12','1','P'],['p_z_liang','Chinese','量词 Measure words','12','1','P'],['p_z_py','Chinese','拼音 Pinyin','12','1','P'],['p_z_ju','Chinese','句子 Sentences','12','2','P'],['p_z_yd','Chinese','阅读 Reading','12','3','P']);
+
+Q('p_e_gram','There ___ three apples on the table.',['are','is','am','be'],'"Apples" is plural, so we use "are".');
+Q('p_e_gram','Yesterday, Tom ___ to the park.',['went','go','goes','going'],'"Yesterday" tells us it happened in the past: went.');
+Q('p_e_gram','What is the plural of "child"?',['children','childs','childes','childrens'],'"Child" has a special plural: children.');
+Q('p_e_gram','Sara is ___ than her brother.',['taller','tall','tallest','more tall'],'Comparing two people: add -er (taller).');
+Q('p_e_gram','I ___ my teeth every morning.',['brush','brushes','brushing','am brush'],'"I" with a daily habit: I brush.');
+Q('p_e_gram','This is ___ umbrella.',['an','a','two','many'],'Use "an" before a vowel sound: an umbrella.');
+Q('p_e_vocab','What is the opposite of "hot"?',['cold','warm','big','wet'],'Hot ↔ cold.');
+Q('p_e_vocab','Which word means "very big"?',['huge','tiny','quick','soft'],'Huge = very big. Tiny = very small.');
+Q('p_e_vocab','"Delighted" means…',['very happy','very sad','very tired','very hungry'],'She was delighted with her present = very happy.');
+Q('p_e_vocab','Which word means the same as "begin"?',['start','finish','stop','close'],'Begin and start are synonyms.');
+Q('p_e_vocab','The puppy played all day, so it was very ___ at night.',['tired','angry','loud','fast'],'After playing all day, it would be tired.');
+Q('p_e_punct','Which sentence is written correctly?',['My name is Amy.','my name is Amy.','My name is amy','my Name is Amy.'],'Start with a capital letter, use a capital for names, and end with a full stop.');
+Q('p_e_punct','Which sentence needs a question mark (?) at the end?',['Where are you going','I am going home','Please close the door','We like ice cream'],'A question asks something: Where are you going?');
+Q('p_e_punct','Which words must always start with a capital letter?',['Names of people and places','All nouns','Every word','Verbs'],'Names like Amy, Singapore and Bishan always start with a capital.');
+Q('p_e_punct','Which sentence uses commas correctly?',['I like apples, bananas and grapes.','I like, apples bananas and grapes.','I like apples bananas, and grapes.','I, like apples, bananas, and grapes.'],'Commas separate the items in a list.');
+const PE1='Every Saturday, Siti helps her grandmother water the plants in their garden. Her grandmother grows chilli, lime and pandan. Siti\'s favourite is the pandan because it smells sweet. After watering, they sit together and drink teh.\n\n';
+Q('p_e_comp',PE1+'What does Siti do every Saturday?',['She helps her grandmother water the plants','She goes swimming','She visits the zoo','She bakes a cake'],'The first sentence tells us.');
+Q('p_e_comp',PE1+'Why does Siti like the pandan best?',['It smells sweet','It is spicy','It is the tallest plant','It is yellow'],'"…because it smells sweet."');
+Q('p_e_comp',PE1+'What do they do after watering?',['Sit together and drink teh','Go shopping','Watch TV','Cook dinner'],'The last sentence tells us.');
+const PE2='Ken left his water bottle on the bus. He felt worried because it was a gift from his father. The next day, the bus driver brought it to the school office. Ken wrote a thank-you card to the driver.\n\n';
+Q('p_e_comp',PE2+'Why was Ken worried?',['The bottle was a gift from his father','He was late for school','He lost his bag','He was thirsty'],'"…because it was a gift from his father."');
+Q('p_e_comp',PE2+'How did Ken show he was thankful?',['He wrote a thank-you card','He bought a new bottle','He gave the driver money','He called his father'],'The last sentence tells us.');
+Q('p_e_synth','Join with "and": Mei likes to sing. Mei likes to dance.',['Mei likes to sing and dance.','Mei likes to sing and Mei dance.','Mei likes and sing dance.','Mei sing and dance likes.'],'Join the two actions without repeating "Mei likes to".');
+Q('p_e_synth','Join with "because": Tom was late. He missed the bus.',['Tom was late because he missed the bus.','Tom missed the bus because he was late.','Because Tom was late he missed bus.','Tom was late because missed the bus.'],'"Because" gives the reason: missing the bus made him late.');
+Q('p_e_synth','Join with "who": I have a friend. He can swim fast.',['I have a friend who can swim fast.','I have a friend which can swim fast.','I have a friend who he can swim fast.','I have a friend whose can swim fast.'],'Use "who" for people, and don\'t repeat "he".');
+Q('p_e_synth','Rewrite using "not only … but also": Sam is clever. Sam is kind.',['Sam is not only clever but also kind.','Sam is not only clever but kind also is.','Not only Sam is clever but also kind.','Sam not only is clever also kind.'],'Put "not only" before the first quality and "but also" before the second.');
+Q('p_s_div','Which is true of ALL living things?',['They need food, water and air','They can fly','They have legs','They are green'],'Living things need food, water and air, grow, respond and reproduce.');
+Q('p_s_div','A mushroom belongs to which group?',['Fungi','Plants','Animals','Bacteria'],'Mushrooms cannot make their own food, so they are not plants. They are fungi.');
+Q('p_s_div','Which animal is a mammal?',['Whale','Shark','Penguin','Crocodile'],'Whales give birth to live young and feed them milk.');
+Q('p_s_div','Which plant reproduces by spores?',['Fern','Sunflower','Mango tree','Rice plant'],'Ferns and mosses make spores; flowering plants make seeds.');
+Q('p_s_mat','Which material is best for a raincoat?',['Plastic','Cotton','Paper','Wool'],'Plastic is waterproof.');
+Q('p_s_mat','Why are cooking pots usually made of metal?',['Metal is a good conductor of heat','Metal is very light','Metal is soft','Metal is transparent'],'Heat passes through metal quickly to cook the food.');
+Q('p_s_mat','A material that lets most light pass through is…',['Transparent','Opaque','Translucent','Magnetic'],'Transparent (clear glass) lets most light through; translucent lets some; opaque lets none.');
+Q('p_s_mat','Which material is the hardest?',['Steel','Rubber','Cloth','Sponge'],'Steel cannot be scratched easily.');
+Q('p_s_mag','Which object will a magnet attract?',['Iron nail','Plastic ruler','Wooden spoon','Rubber band'],'Magnets attract iron, steel, nickel and cobalt.');
+Q('p_s_mag','When two like poles (N and N) are brought together, they…',['Repel','Attract','Stick together','Melt'],'Like poles repel; unlike poles attract.');
+Q('p_s_mag','Where is a bar magnet strongest?',['At its poles (ends)','In the middle','The same everywhere','On its label'],'The magnetic force is strongest at the poles.');
+Q('p_s_mag','A freely hanging bar magnet comes to rest pointing…',['North and south','East and west','Up and down','In any direction'],'This is how a compass works.');
+Q('p_s_cyc','What are the stages in the life cycle of a butterfly?',['Egg → larva → pupa → adult','Egg → pupa → larva → adult','Larva → egg → adult','Egg → adult'],'Butterflies have a four-stage life cycle.');
+Q('p_s_cyc','Which animal has a three-stage life cycle?',['Cockroach','Butterfly','Mosquito','Beetle'],'Cockroach: egg → nymph → adult.');
+Q('p_s_cyc','The young of a frog is called a…',['Tadpole','Chick','Caterpillar','Nymph'],'Frogs: egg → tadpole → froglet → adult frog.');
+Q('p_s_cyc','What does a seed need to germinate?',['Water, air and warmth','Light only','Soil only','Fertiliser only'],'Seeds do not need light or soil to germinate.');
+Q('p_s_plant','What do the roots of a plant do?',['Hold the plant firmly and take in water and mineral salts','Make food','Make seeds','Attract insects'],'Roots anchor the plant and absorb water.');
+Q('p_s_plant','Leaves make food by a process called…',['Photosynthesis','Respiration','Germination','Pollination'],'Leaves use light, water and carbon dioxide to make food.');
+Q('p_s_plant','Water travels up the stem through the…',['Water-carrying tubes','Food-carrying tubes','Flowers','Petals'],'Water-carrying tubes take water from the roots to the leaves.');
+Q('p_s_plant','After fertilisation, which part of a flower becomes the fruit?',['Ovary','Petal','Anther','Stem'],'The ovary becomes the fruit and the ovules become seeds.');
+Q('p_s_matter','Matter is anything that…',['Has mass and occupies space','Can be seen','Is a solid','Is alive'],'Air is matter too, even though we cannot see it.');
+Q('p_s_matter','Which has a definite volume but no definite shape?',['Water','Air','A stone','A pencil'],'Liquids take the shape of their container.');
+Q('p_s_matter','Water turning into steam when heated is called…',['Boiling','Melting','Freezing','Condensation'],'Boiling turns liquid water into water vapour at 100 °C.');
+Q('p_s_matter','Why is air considered matter?',['It has mass and occupies space','It is invisible','It is cold','It is colourless'],'A balloon full of air takes up space and has mass.');
+Q('p_s_light','A shadow forms when…',['An opaque object blocks light','Light passes through clear glass','Light reflects off a mirror','It is night'],'Light travels in straight lines and cannot pass through opaque objects.');
+Q('p_s_light','We can see an object when…',['Light from it enters our eyes','Our eyes give out light','It is completely dark','It is warm'],'Light reflected from the object enters our eyes.');
+Q('p_s_light','Which material casts the darkest shadow?',['Wood','Clear glass','Tracing paper','Clear plastic'],'Wood is opaque and blocks all light.');
+Q('p_s_light','An object moves closer to a torch. Its shadow becomes…',['Bigger','Smaller','Invisible','The same size'],'Closer to the light source, it blocks more light.');
+Q('p_s_heat','Heat flows from…',['A hotter object to a colder object','A colder object to a hotter object','Up only','Down only'],'Heat always flows from hot to cold until they are the same temperature.');
+Q('p_s_heat','What do we use to measure temperature?',['Thermometer','Ruler','Measuring cylinder','Weighing scale'],'Temperature is measured in °C with a thermometer.');
+Q('p_s_heat','Which spoon is the best conductor of heat?',['Metal spoon','Plastic spoon','Wooden spoon','Rubber spoon'],'Metals are good conductors of heat.');
+Q('p_s_heat','When most things are heated, they…',['Expand','Contract','Disappear','Become heavier'],'Heating makes most things expand; cooling makes them contract.');
+Q('p_s_human','What does the heart do?',['Pumps blood around the body','Digests food','Takes in air','Controls thinking'],'The heart is part of the circulatory system.');
+Q('p_s_human','Where does digestion start?',['Mouth','Stomach','Small intestine','Large intestine'],'Teeth break food into small pieces and saliva starts digestion.');
+Q('p_s_human','Which organ takes in oxygen?',['Lungs','Stomach','Heart','Kidneys'],'The lungs are part of the respiratory system.');
+Q('p_s_human','Which system supports the body and protects organs like the brain?',['Skeletal system','Digestive system','Respiratory system','Circulatory system'],'The skull protects the brain; the ribs protect the heart and lungs.');
+Q('p_s_water','What is the correct order in the water cycle?',['Evaporation → condensation → precipitation','Condensation → evaporation → precipitation','Precipitation → condensation → evaporation','Evaporation → precipitation → condensation'],'Water evaporates, condenses into clouds, then falls as rain.');
+Q('p_s_water','Water droplets form on the outside of a glass of ice water because…',['Water vapour in the air condenses on the cold glass','Water leaks through the glass','The ice melts through the glass','The glass sweats'],'Warm water vapour loses heat to the cold glass and condenses.');
+Q('p_s_water','Wet clothes dry fastest when it is…',['Warm and windy','Cold and still','Raining','Covered'],'Heat and wind speed up evaporation.');
+Q('p_s_water','Clouds are made of…',['Tiny water droplets','Smoke','Dust only','Air only'],'Water vapour condenses into tiny droplets that form clouds.');
+Q('p_s_elec','For a bulb to light up, the circuit must be…',['Closed (complete)','Open','Broken','Empty'],'Electricity flows only around a complete circuit.');
+Q('p_s_elec','Which object is an electrical conductor?',['Steel paper clip','Plastic straw','Rubber band','Wooden stick'],'Metals conduct electricity.');
+Q('p_s_elec','What does a switch do?',['Opens or closes the circuit','Makes electricity','Stores electricity','Changes the bulb colour'],'Switching off breaks the circuit.');
+Q('p_s_elec','Adding another battery in series makes a bulb…',['Brighter','Dimmer','Go out','No different'],'More batteries in series push more current through the bulb.');
+Q('p_s_force','A force can…',['Change the shape, speed or direction of an object','Only make things heavier','Only make things warmer','Never stop an object'],'Forces are pushes or pulls.');
+Q('p_s_force','Friction is a force that…',['Opposes motion between surfaces in contact','Makes objects lighter','Acts only in water','Speeds objects up'],'Rough surfaces give more friction.');
+Q('p_s_force','Gravity pulls objects…',['Towards the Earth','Away from the Earth','Sideways','Nowhere'],'Gravity is why things fall when dropped.');
+Q('p_s_force','A stretched spring has…',['Elastic potential energy','Light energy','Sound energy','No energy'],'It is stored energy that is released when the spring returns to its shape.');
+Q('p_s_env','In "grass → grasshopper → bird", the producer is…',['Grass','Grasshopper','Bird','The bird\'s nest'],'Producers make their own food. Food chains start with a producer.');
+Q('p_s_env','Plants are called producers because…',['They make their own food','They eat animals','They make noise','They are green'],'Plants make food by photosynthesis.');
+Q('p_s_env','What do decomposers do?',['Break down dead plants and animals','Make food from sunlight','Hunt other animals','Pollinate flowers'],'Bacteria and fungi are decomposers. They return nutrients to the soil.');
+Q('p_s_env','Which action helps the environment?',['Recycling paper and plastic','Cutting down forests','Littering','Leaving taps running'],'Recycling saves resources and reduces waste.');
+Q('p_z_ci','“高兴”是什么意思？',['Happy','Sad','Tall','Cold'],'我今天很高兴 = I am very happy today.');
+Q('p_z_ci','“学校”是什么意思？',['School','Home','Park','Shop'],'我去学校上课。');
+Q('p_z_ci','“喝水”是什么意思？',['Drink water','Eat rice','Wash hands','Play ball'],'天气热，要多喝水。');
+Q('p_z_ci','“谢谢”是什么意思？',['Thank you','Sorry','Goodbye','Hello'],'别人帮助你，要说“谢谢”。');
+Q('p_z_ci','“大”的反义词是：',['小','多','高','长'],'大 ↔ 小。');
+Q('p_z_liang','一___猫',['只','本','张','件'],'动物常用“只”：一只猫。');
+Q('p_z_liang','一___苹果',['个','张','条','本'],'一个苹果。');
+Q('p_z_liang','一___笔',['支','本','张','件'],'笔用“支”：一支笔。');
+Q('p_z_liang','一___桌子',['张','本','只','件'],'桌子用“张”：一张桌子。');
+Q('p_z_liang','一___裤子',['条','本','张','只'],'裤子用“条”：一条裤子。');
+Q('p_z_py','“妈妈”的拼音是：',['mā ma','mǎ ma','má ma','mà ma'],'第一个“妈”是第一声，第二个读轻声。');
+Q('p_z_py','“你好”的拼音是：',['nǐ hǎo','ní hǎo','nì hào','nǐ háo'],'你 nǐ，好 hǎo，都是第三声。');
+Q('p_z_py','“猫”的拼音是：',['māo','máo','mǎo','mào'],'猫 māo 是第一声。');
+Q('p_z_py','“书”的拼音是：',['shū','sū','shú','xū'],'书 shū 是第一声，声母是 sh。');
+Q('p_z_py','“水”的拼音是：',['shuǐ','suǐ','shuí','shuì'],'水 shuǐ 是第三声。');
+Q('p_z_ju','我每天早上___学校上课。',['去','吃','睡','唱'],'去学校 = go to school.');
+Q('p_z_ju','天气很热，我想喝___。',['冰水','书包','铅笔','衣服'],'热的时候喝冰水。');
+Q('p_z_ju','小狗___地摇尾巴。',['高兴','生气','难过','害怕'],'小狗摇尾巴，表示它很高兴。');
+Q('p_z_ju','我们要___老师。',['尊敬','吃饭','跑步','下雨'],'尊敬老师 = respect teachers.');
+Q('p_z_ju','因为下雨，___我们没有去公园。',['所以','但是','而且','如果'],'“因为……所以”表示原因和结果。');
+const PZ1='今天是妈妈的生日。小华早上起床后，画了一张生日卡送给妈妈。妈妈看了很高兴，抱了抱小华。晚上，全家人一起吃蛋糕。\n\n';
+Q('p_z_yd',PZ1+'今天是谁的生日？',['妈妈','小华','爸爸','奶奶'],'第一句：今天是妈妈的生日。');
+Q('p_z_yd',PZ1+'小华送妈妈什么？',['一张生日卡','一个蛋糕','一束花','一本书'],'小华画了一张生日卡送给妈妈。');
+Q('p_z_yd',PZ1+'妈妈看了生日卡，觉得怎么样？',['很高兴','很生气','很累','很难过'],'“妈妈看了很高兴”。');
+
+/* ---------- primary math generators ---------- */
+const fmt12=m=>{let h=Math.floor(m/60)%24,mm=m%60;const ap=h<12?'a.m.':'p.m.';h=h%12||12;return h+':'+String(mm).padStart(2,'0')+' '+ap};
+Object.assign(GEN,{
+p_wn:()=>{const v=ri(0,2),N=ri(1000,99999);
+  if(v===0){const s=String(N);let p;do{p=ri(0,s.length-1)}while(s[s.length-1-p]==='0');const d=+s[s.length-1-p];return num(`In ${N.toLocaleString('en-SG')}, what is the value of the digit ${d} in the ${['ones','tens','hundreds','thousands','ten thousands'][p]} place?`,d*10**p,`${d} is in the ${['ones','tens','hundreds','thousands','ten thousands'][p]} place, so its value is ${(d*10**p).toLocaleString('en-SG')}.`)}
+  if(v===1){const t=pick([10,100,1000]),r=Math.round(N/t)*t;return num(`Round ${N.toLocaleString('en-SG')} to the nearest ${t.toLocaleString('en-SG')}.`,r,`Look at the digit to the right of the ${t===10?'tens':t===100?'hundreds':'thousands'} place. ${N.toLocaleString('en-SG')} rounds to ${r.toLocaleString('en-SG')}.`)}
+  const k=pick([10,100,1000]);return num(`What number is ${k} more than ${N.toLocaleString('en-SG')}?`,N+k,`${N.toLocaleString('en-SG')} + ${k} = ${(N+k).toLocaleString('en-SG')}.`)},
+p_addsub:()=>{const a=ri(15,999),b=ri(10,a-1);return ri(0,1)?num(`Work out ${a} + ${b}`,a+b,`${a} + ${b} = ${a+b}.`):num(`Work out ${a} − ${b}`,a-b,`${a} − ${b} = ${a-b}. Check: ${a-b} + ${b} = ${a}.`)},
+p_muldiv:()=>{const a=ri(2,12),b=ri(2,12),v=ri(0,2);
+  if(v===0)return num(`Work out ${a} × ${b}`,a*b,`${a} × ${b} = ${a*b}.`);
+  if(v===1)return num(`Work out ${a*b} ÷ ${a}`,b,`${a} × ${b} = ${a*b}, so ${a*b} ÷ ${a} = ${b}.`);
+  const c=ri(12,99),d=ri(2,9);return num(`Work out ${c} × ${d}`,c*d,`${c} × ${d} = ${c*d}.`)},
+p_money:()=>{if(ri(0,1)){const a=ri(105,2500)/100,b=ri(105,2500)/100;return num(`Add $${money(a)} and $${money(b)}. (in $)`,r2(a+b),`$${money(a)} + $${money(b)} = $${money(a+b)}.`,0.006)}
+  const n=pick([10,20,50]),c=ri(150,n*100-50)/100;return num(`Amy buys a book for $${money(c)} and pays with a $${n} note. How much change does she get? (in $)`,r2(n-c),`$${n}.00 − $${money(c)} = $${money(n-c)}.`,0.006)},
+p_time:()=>{if(ri(0,1)){const h=ri(1,4),m=ri(5,55);return num(`How many minutes are there in ${h} h ${m} min?`,h*60+m,`${h} × 60 = ${h*60} min, + ${m} min = ${h*60+m} min.`)}
+  const s=ri(8*12,16*12)*5,d=pick([25,40,45,50,75,90,105,120]),e=s+d;return mcq(`A lesson starts at ${fmt12(s)} and lasts ${d} minutes. When does it end?`,[fmt12(e),fmt12(e+60),fmt12(e-10),fmt12(s+d%60)],`${fmt12(s)} + ${d} min = ${fmt12(e)}.`)},
+p_meas:()=>{const v=ri(0,3);
+  if(v===0){const m=ri(2,15);return num(`${m} m = ? cm`,m*100,`1 m = 100 cm, so ${m} m = ${m*100} cm.`)}
+  if(v===1){const k=ri(1,9),g=ri(50,950);return num(`${k} kg ${g} g = ? g`,k*1000+g,`1 kg = 1000 g, so ${k} kg ${g} g = ${k*1000+g} g.`)}
+  if(v===2){const l=ri(2,9),ml=ri(1,9)*100;return num(`${l} ℓ ${ml} ml = ? ml`,l*1000+ml,`1 ℓ = 1000 ml, so ${l} ℓ ${ml} ml = ${l*1000+ml} ml.`)}
+  const c=ri(110,990);return num(`${c} cm = ? m`,c/100,`Divide by 100: ${c} cm = ${c/100} m.`)},
+p_frac:()=>{const v=ri(0,2);
+  if(v===0){const d=pick([2,3,4,5,6,8,10]),n=ri(1,d-1),k=ri(2,10)*d;return num(`What is ${n}/${d} of ${k}?`,k/d*n,`${k} ÷ ${d} = ${k/d}, × ${n} = ${k/d*n}.`)}
+  if(v===1){const d=pick([2,3,4,5,6]),n=ri(1,d-1),k=ri(2,5);return num(`${n}/${d} = ?/${d*k}`,n*k,`Multiply top and bottom by ${k}: ${n}/${d} = ${n*k}/${d*k}.`)}
+  const d=pick([5,6,7,8,9,10,12]),a=ri(1,d-2),c=ri(1,d-1-a);return mcq(`Work out ${a}/${d} + ${c}/${d}`,[frac(a+c,d),`${a+c}/${2*d}`,frac(a*c,d),frac(a+c+1,d)],`Same denominator: add the numerators. ${a} + ${c} = ${a+c}, so ${a+c}/${d}${frac(a+c,d)!==(a+c)+'/'+d?' = '+frac(a+c,d):''}.`)},
+p_area:()=>{const l=ri(3,20),w=ri(2,15),v=ri(0,3);
+  if(v===0)return num(`A rectangle is ${l} cm long and ${w} cm wide. What is its area in cm²?`,l*w,`Area = length × breadth = ${l} × ${w} = ${l*w} cm².`);
+  if(v===1)return num(`A rectangle is ${l} cm long and ${w} cm wide. What is its perimeter in cm?`,2*(l+w),`Perimeter = ${l} + ${w} + ${l} + ${w} = ${2*(l+w)} cm.`);
+  if(v===2)return num(`A square has sides of ${w} cm. What is its area in cm²?`,w*w,`${w} × ${w} = ${w*w} cm².`);
+  return num(`A rectangle has an area of ${l*w} cm² and a length of ${l} cm. What is its breadth in cm?`,w,`Breadth = area ÷ length = ${l*w} ÷ ${l} = ${w} cm.`)},
+p_angle:()=>{const v=ri(0,3);
+  if(v===0){const x=ri(20,160);return num(`Two angles lie on a straight line. One is ${x}°. What is the other angle?`,180-x,`Angles on a straight line add up to 180°: 180° − ${x}° = ${180-x}°.`)}
+  if(v===1){const a=ri(30,80),b=ri(30,100);return num(`Two angles of a triangle are ${a}° and ${b}°. What is the third angle?`,180-a-b,`Angles in a triangle add up to 180°: 180° − ${a}° − ${b}° = ${180-a-b}°.`)}
+  if(v===2){const x=ri(10,80);return num(`A right angle is split into two angles. One is ${x}°. What is the other?`,90-x,`A right angle is 90°: 90° − ${x}° = ${90-x}°.`)}
+  const a=ri(60,130),b=ri(60,120),c=ri(40,100);return num(`Three angles at a point are ${a}°, ${b}° and ${c}°. A fourth angle completes the turn. What is it?`,360-a-b-c,`Angles at a point add up to 360°: 360° − ${a+b+c}° = ${360-a-b-c}°.`)},
+p_dec:()=>{const v=ri(0,2);
+  if(v===0){const a=ri(101,999)/100,b=ri(101,999)/100;return num(`Work out ${a.toFixed(2)} + ${b.toFixed(2)}`,r2(a+b),`Line up the decimal points: ${a.toFixed(2)} + ${b.toFixed(2)} = ${(a+b).toFixed(2)}.`,0.006)}
+  if(v===1){const a=ri(11,999)/100,k=pick([10,100,1000]);return num(`Work out ${a} × ${k}`,r2(a*k),`Multiplying by ${k} moves the digits ${String(k).length-1} place${k>10?'s':''} to the left: ${r2(a*k)}.`,0.001)}
+  const a=ri(1001,9999)/1000;return num(`Round ${a.toFixed(3)} to 1 decimal place.`,r1(a),`Look at the hundredths digit: ${a.toFixed(3)} ≈ ${r1(a).toFixed(1)}.`,0.001)},
+p_pct:()=>{const v=ri(0,2);
+  if(v===0){const p=pick([10,20,25,50,75,30,40]),x=ri(2,30)*20;return num(`Find ${p}% of ${x}.`,p*x/100,`${p}% = ${p}/100. ${p}/100 × ${x} = ${p*x/100}.`)}
+  if(v===1){const d=pick([2,4,5,10,20,25]),n=ri(1,d-1);return num(`Write ${n}/${d} as a percentage.`,n/d*100,`${n}/${d} × 100% = ${n/d*100}%.`)}
+  const p=pick([10,20,25,50]),x=ri(2,20)*10;return num(`A toy costs $${x}. It has a ${p}% discount. How much is the discount? (in $)`,p*x/100,`${p}% of $${x} = $${p*x/100}.`)},
+p_avg:()=>{const n=pick([3,4,5]),avg=ri(10,60),d=Array.from({length:n-1},()=>ri(avg-9,avg+9));d.push(avg*n-d.reduce((a,x)=>a+x,0));
+  if(ri(0,1))return num(`Find the average of ${d.join(', ')}.`,avg,`Total = ${avg*n}. Average = ${avg*n} ÷ ${n} = ${avg}.`);
+  return num(`The average mass of ${n} boxes is ${avg} kg. What is their total mass in kg?`,avg*n,`Total = average × number = ${avg} × ${n} = ${avg*n} kg.`)},
+p_ratio:()=>{if(ri(0,1)){const a=ri(1,5),b=ri(1,7),k=ri(2,9);if(gcd(a,b)!==1)return GEN.p_ratio();return mcq(`Write ${a*k} : ${b*k} in its simplest form.`,[`${a} : ${b}`,`${b} : ${a}`,`${a*k} : ${b}`,`${a+1} : ${b}`,`${a} : ${b+1}`,`${a} : ${b*k}`],`Divide both by ${k}: ${a} : ${b}.`)}
+  const a=ri(1,5),b=ri(1,6),k=ri(3,15),N=k*(a+b);return num(`Ali and Ben share ${N} stickers in the ratio ${a} : ${b}. How many stickers does Ali get?`,a*k,`${a+b} units = ${N}, so 1 unit = ${k}. Ali gets ${a} × ${k} = ${a*k}.`)},
+p_speed:()=>{const s=ri(4,20)*5,t=ri(2,5),v=ri(0,2);
+  if(v===0)return num(`A bus travels at ${s} km/h for ${t} hours. How far does it travel in km?`,s*t,`Distance = speed × time = ${s} × ${t} = ${s*t} km.`);
+  if(v===1)return num(`A car travels ${s*t} km in ${t} hours. What is its speed in km/h?`,s,`Speed = distance ÷ time = ${s*t} ÷ ${t} = ${s} km/h.`);
+  return num(`A cyclist travels ${s*t} km at ${s} km/h. How many hours does it take?`,t,`Time = distance ÷ speed = ${s*t} ÷ ${s} = ${t} h.`)},
+p_alg:()=>{if(ri(0,1)){const a=ri(2,9),b=ri(1,20),n=ri(2,12);return num(`Find the value of ${a}n + ${b} when n = ${n}.`,a*n+b,`${a} × ${n} + ${b} = ${a*n} + ${b} = ${a*n+b}.`)}
+  const p=ri(3,9),q=ri(2,9),r=ri(1,p+q-1);return mcq(`Simplify ${p}a + ${q}a − ${r}a`,[tm(p+q-r,'a'),`${p+q+r}a`,tm(Math.abs(p-q-r)||p+q-r+1,'a'),`${p+q-r}a²`],`${p} + ${q} − ${r} = ${p+q-r}, so ${tm(p+q-r,'a')}.`)}
+});
+
+/* ---------- study notes: short summaries for every topic, in original wording ---------- */
+const NOTES={
+m_int:['Order of operations: brackets first, then × and ÷ (left to right), then + and − (left to right).','Same signs multiply or divide to give a positive; different signs give a negative: (−3) × (−4) = 12, (−3) × 4 = −12.','Subtracting a negative is the same as adding: 5 − (−2) = 7.','A negative number squared is positive: (−5)² = 25.'],
+m_frac:['Add or subtract fractions with a common denominator: 1/3 + 1/4 = 4/12 + 3/12 = 7/12.','Simplify by dividing the top and bottom by their highest common factor.','Fraction of a quantity: divide by the denominator, then multiply by the numerator. 3/5 of 40 = 40 ÷ 5 × 3 = 24.','Fraction to decimal: divide the numerator by the denominator (3/8 = 0.375).'],
+m_pct:['Percent means "out of 100": 15% = 15/100 = 0.15.','x% of a quantity = x/100 × quantity.','Increase by r%: multiply by (100 + r)/100. Decrease or discount by r%: multiply by (100 − r)/100.','Percentage change = change ÷ original × 100%.'],
+m_ratio:['A ratio compares quantities in the same units. Simplify it like a fraction: 12 : 8 = 3 : 2.','To share in the ratio a : b, find 1 part = total ÷ (a + b), then multiply.','Speed = distance ÷ time; distance = speed × time; time = distance ÷ speed.','A rate compares different units, e.g. $2.50 per kg. Find the value of 1 unit first.'],
+m_alg:['Like terms have the same letters and powers: 3x and −5x are like terms; 3x and 3y are not.','Collect like terms by adding their numbers: 4a + 2b − a = 3a + 2b.','Expand by multiplying every term inside the bracket: 3(2x − 5) = 6x − 15.','Watch the sign outside the bracket: −2(x − 4) = −2x + 8.'],
+m_lin:['Whatever you do to one side, do to the other, so the equation stays balanced.','Undo + and − first, then × and ÷: 3x + 5 = 20 → 3x = 15 → x = 5.','With brackets, expand first or divide both sides first.','Check by putting your answer back into the original equation.'],
+m_mens:['Rectangle: area = length × breadth; perimeter = 2(length + breadth).','Triangle: area = ½ × base × perpendicular height.','Circle: circumference = 2πr; area = πr².','Cylinder: volume = πr²h. Prism: volume = cross-section area × length.','Use matching units: cm² for area, cm³ for volume.'],
+m_stat:['Mean = total of the values ÷ number of values.','Median = the middle value once the data is in order (average the middle two if there is an even number).','Mode = the most common value. Range = largest − smallest.','The median is less affected by very large or very small values than the mean.'],
+m_pyth:['Only for right-angled triangles: a² + b² = c², where c is the hypotenuse (opposite the right angle).','To find the hypotenuse: add the squares, then take the square root.','To find a shorter side: subtract (c² − a²), then take the square root.','Useful triples: 3-4-5, 5-12-13, 8-15-17 and their multiples.'],
+m_grad:['Gradient = (y₂ − y₁) ÷ (x₂ − x₁) = rise ÷ run.','A positive gradient slopes up to the right; a negative one slopes down.','In y = mx + c, m is the gradient and c is the y-intercept.','Midpoint = ((x₁ + x₂) ÷ 2, (y₁ + y₂) ÷ 2).'],
+m_sim:['Two equations, two unknowns: find the values that make both true.','Elimination: make one unknown\'s numbers match, then add or subtract the equations.','Substitution: rearrange one equation for one unknown and put it into the other.','Always check your answers in both original equations.'],
+m_prob:['Probability = number of favourable outcomes ÷ total number of equally likely outcomes.','Probabilities run from 0 (impossible) to 1 (certain).','P(not A) = 1 − P(A).','Give answers as fractions in their simplest form, decimals or percentages.'],
+m_money:['Simple interest = P × R × T ÷ 100 (P = amount, R = rate % per year, T = years).','GST is added on top: for 9% GST, multiply the price by 1.09.','Sale price after a discount of r% = original × (100 − r) ÷ 100.','Earnings = rate per hour × hours worked.'],
+m_trig:['SOH CAH TOA: sin = opposite/hypotenuse, cos = adjacent/hypotenuse, tan = opposite/adjacent.','Label the sides from the angle you are using.','To find a side: e.g. opposite = hypotenuse × sin θ.','To find an angle: use the inverse, e.g. θ = tan⁻¹(opposite ÷ adjacent). Check your calculator is in degrees.'],
+m_idx:['aᵐ × aⁿ = aᵐ⁺ⁿ;  aᵐ ÷ aⁿ = aᵐ⁻ⁿ;  (aᵐ)ⁿ = aᵐⁿ.','a⁰ = 1 and a⁻ⁿ = 1/aⁿ.','Standard form is A × 10ⁿ, where 1 ≤ A < 10.','Big numbers have positive n (45 000 = 4.5 × 10⁴); small numbers have negative n (0.003 = 3 × 10⁻³).'],
+m_quad:['First rearrange to ax² + bx + c = 0.','To factorise x² + bx + c, find two numbers that multiply to c and add to b.','If (x − p)(x − q) = 0, then x = p or x = q.','If it will not factorise, use the formula x = [−b ± √(b² − 4ac)] ÷ 2a.'],
+e_tense:['Simple present for habits and facts: She walks to school.','Simple past for finished actions at a stated time: Yesterday he left early.','Present perfect (has/have + past participle) links the past to now: They have lived here since 2015.','Past continuous for an action in progress: I was reading when the phone rang.','Past perfect (had + past participle) for the earlier of two past actions.'],
+e_sva:['A singular subject takes a singular verb; a plural subject takes a plural verb.','Find the real subject: "The box of pencils is…" (box, not pencils).','Each, every, everyone, neither and either take singular verbs.','Two subjects joined by "and" are plural. With either…or and neither…nor, the verb agrees with the nearer subject.'],
+e_prep:['Many words take fixed prepositions: good at, interested in, apologise for, depend on.','Time: at 3 p.m., on Monday, in June.','Connectors show how ideas link: because (reason), so (result), but/although (contrast), unless (condition).','Don\'t use "although" and "but" in the same sentence.'],
+e_punct:['its = belonging to it; it\'s = it is.','Apostrophes for ownership: the boy\'s bag (one boy), the boys\' bags (more than one boy).','In direct speech, punctuation goes inside the speech marks: "Wait!" she said.','Use commas to separate items in a list and after an opening phrase.'],
+e_vocab:['Use context clues: the words around a new word often explain it.','Prefixes and suffixes help: un- (not), re- (again), -less (without).','Learn word families together: generous, generosity, generously.','Keep a vocabulary log and use each new word in your own sentence.'],
+e_comp:['Read the questions first so you know what to look for.','Answer in your own words unless asked to quote, and back up answers with evidence from the text.','For "why" questions, give the reason; for "what does this suggest" questions, work out feelings or intentions.','Check the marks for each question: they show how many points you need.'],
+e_edit:['Check agreement, tenses, plurals, prepositions and spelling.','Read slowly: errors hide in small words (a/an, is/are, has/have).','After has/have/had, use the past participle: gone, written, taken.','Comparatives: taller (not "more taller"); superlatives: tallest (not "most tallest").'],
+e_synth:['Keep the meaning; only change the structure.','Although/though: don\'t add "but". Unless = if not.','Reported speech: change the pronouns and move tenses back (am → was, will → would).','Passive: object + be + past participle (+ by + doer): The meal was cooked by the chef.','Relative pronouns: who (people), which (things), whose (ownership).'],
+sc_cell:['All living things are made of cells. Plant and animal cells both have a nucleus, cytoplasm and a cell membrane.','Plant cells also have a cell wall, chloroplasts and a large central vacuole.','Nucleus controls the cell; cell membrane controls what enters and leaves; mitochondria release energy.','Levels of organisation: cells → tissues → organs → organ systems → organism.','Specialised cells (red blood cells, root hair cells) have features that suit their jobs.'],
+b_nut:['Digestion breaks large, insoluble food molecules into small, soluble ones that can be absorbed.','Amylase: starch → sugars. Protease: proteins → amino acids. Lipase: fats → fatty acids + glycerol.','Bile is made in the liver, stored in the gall bladder, and emulsifies fats.','Digested food is absorbed in the small intestine through villi; the large intestine absorbs water.','Food tests: iodine (starch → blue-black), Benedict\'s (reducing sugar → brick-red), biuret (protein → purple), ethanol emulsion (fat → cloudy white).'],
+b_photo:['carbon dioxide + water → glucose + oxygen, using light energy absorbed by chlorophyll.','It happens mainly in the palisade cells of the leaf, which are packed with chloroplasts.','CO₂ enters through stomata; water comes from the roots through the xylem.','Limiting factors: light intensity, carbon dioxide concentration and temperature.','Glucose is used in respiration or stored as starch.'],
+b_diff:['Diffusion: net movement of particles from a higher to a lower concentration. No energy from the cell is needed.','Osmosis: net movement of water from higher to lower water potential through a partially permeable membrane.','Animal cells in pure water swell and may burst; in a concentrated solution they shrink.','Plant cells in water become turgid; in a concentrated solution they become plasmolysed.','Faster with a larger surface area, a steeper gradient, a shorter distance and a higher temperature.'],
+b_enz:['Enzymes are proteins that act as biological catalysts: they speed up reactions and are not used up.','Each enzyme\'s active site fits one substrate (lock and key).','Activity rises with temperature up to the optimum (about 37 °C in humans); above that, the enzyme is denatured.','Each enzyme has an optimum pH: pepsin works in the acidic stomach; amylase near neutral.'],
+b_trans:['The heart\'s right side pumps blood to the lungs; the left side pumps it to the body. The left ventricle has the thickest wall.','Arteries carry blood away from the heart at high pressure. Veins bring it back at low pressure and have valves.','Capillaries are one cell thick, so substances are exchanged there.','Red cells carry oxygen; white cells fight infection; platelets help clotting; plasma carries dissolved substances.'],
+b_resp:['Respiration releases energy from food in every living cell. It is not the same as breathing.','Aerobic: glucose + oxygen → carbon dioxide + water (+ a lot of energy), in mitochondria.','Anaerobic in muscles: glucose → lactic acid (+ a little energy).','Anaerobic in yeast: glucose → ethanol + carbon dioxide (+ a little energy).','Alveoli are thin, moist, numerous and surrounded by capillaries, which makes gas exchange efficient.'],
+b_repro:['Asexual reproduction uses one parent and gives identical offspring. Sexual reproduction joins two gametes.','Gametes are made by meiosis and have half the chromosomes (23 in humans). Body cells have 46.','Fertilisation is the fusion of a male and a female gamete to form a zygote.','In flowering plants, pollination (pollen to stigma) comes before fertilisation.','A dominant allele shows with one copy; a recessive allele needs two. Use a Punnett square to predict offspring.'],
+sc_lab:['Wear goggles, tie back long hair, and never point a heated test tube at anyone.','SI units: mass in kg, length in m, time in s, temperature in K (°C is also used).','Pipettes and burettes measure volumes accurately; measuring cylinders less so; beakers only roughly.','Read volumes at eye level, from the bottom of the meniscus.','Know the hazard symbols: flammable, corrosive, toxic, oxidising, harmful.'],
+sc_matter:['Solids: particles closely packed in a regular pattern, vibrating in place; fixed shape and volume.','Liquids: particles close together but able to slide past each other; fixed volume, no fixed shape.','Gases: particles far apart, moving fast and randomly; no fixed shape or volume; easy to compress.','Changes of state: melting, boiling/evaporation, condensation, freezing, sublimation.','Heating gives particles more kinetic energy.'],
+sc_sep:['Filtration: separates an insoluble solid from a liquid.','Evaporation or crystallisation: gets a dissolved solid out of a solution.','Simple distillation: gets the pure solvent (e.g. water) from a solution.','Fractional distillation: separates liquids that mix, using their different boiling points.','Paper chromatography separates dyes; a pure substance gives one spot. A magnet separates iron or steel.'],
+c_atom:['An atom has a nucleus of protons (+1) and neutrons (0), with electrons (−1) in shells around it.','Proton number = number of protons. Nucleon number = protons + neutrons.','In a neutral atom, the number of electrons equals the number of protons.','Electrons fill shells in 2, 8, 8…: sodium (11) is 2.8.1.','Isotopes have the same number of protons but different numbers of neutrons.'],
+c_pt:['Elements are arranged by proton number. A group (column) shares the same number of outer-shell electrons; a period (row) shares the same number of shells.','Group 1 alkali metals are reactive and get more reactive down the group.','Group 17 halogens are reactive non-metals and get less reactive down the group.','Group 18 noble gases have full outer shells and are unreactive.','Metals are on the left and in the middle; non-metals are on the right.'],
+c_bond:['Ionic bonding: metal atoms transfer electrons to non-metal atoms, forming oppositely charged ions held by strong attraction.','Ionic compounds have high melting points and conduct when molten or dissolved (ions free to move).','Covalent bonding: non-metal atoms share pairs of electrons.','Simple molecules (water, CO₂) have weak forces between molecules, so low melting points, and do not conduct.','Balance the charges to write formulae: Ca²⁺ and Cl⁻ make CaCl₂.'],
+c_mole:['Relative molecular mass (Mr) = sum of the relative atomic masses (Ar) in the formula.','Moles = mass ÷ molar mass.','One mole of any gas takes up 24 dm³ at room temperature and pressure.','Use the balanced equation\'s ratio to work out moles of other substances.','Concentration (mol/dm³) = moles ÷ volume in dm³.'],
+c_acid:['Acids have pH below 7, alkalis above 7, and neutral is 7 (green with universal indicator).','acid + alkali → salt + water (neutralisation).','acid + metal → salt + hydrogen;  acid + carbonate → salt + water + carbon dioxide.','Gas tests: hydrogen "pops" with a lighted splint; CO₂ turns limewater milky; oxygen relights a glowing splint.','Hydrochloric acid makes chlorides, sulfuric acid makes sulfates, nitric acid makes nitrates.'],
+c_react:['Particles must collide with at least the activation energy to react.','Rate goes up with higher temperature, higher concentration or pressure, larger surface area, or a catalyst.','A catalyst lowers the activation energy and is chemically unchanged at the end.','Exothermic reactions give out heat (combustion, neutralisation). Endothermic reactions take in heat (thermal decomposition, photosynthesis).'],
+c_redox:['Reactivity series (high to low): potassium, sodium, calcium, magnesium, (carbon), zinc, iron, (hydrogen), copper, silver, gold.','A more reactive metal displaces a less reactive one from its compounds.','Oxidation = gain of oxygen or loss of electrons; reduction = loss of oxygen or gain of electrons (OIL RIG).','Rusting needs water and oxygen. Prevent it by painting, oiling, or galvanising with zinc (sacrificial protection).','Iron is extracted from haematite in a blast furnace.'],
+z_ci:['学词语时，记住意思，也要会用：用新词语造一个句子。','可以把词语和英文意思一起记，但要多用华语说出来。','每天选三个新词语，跟家人说话时用一用。'],
+z_liang:['量词放在数词和名词之间：一本书、两张纸、三只猫。','常用量词：本（书）、张（纸、桌子）、只（动物）、条（鱼、河、裤子）、件（衣服、事情）、辆（车）、个（最常用）。','想想东西的样子：长条形的常用“条”，平平的常用“张”。'],
+z_py:['拼音 = 声母 + 韵母 + 声调，例如 xué = x + üe + 第二声。','四个声调：ā 第一声（平）、á 第二声（升）、ǎ 第三声（先降后升）、à 第四声（降）。轻声不标调。','j、q、x 后面的 ü 写成 u：xué、qù。'],
+z_ju:['先读整个句子，明白意思再选词。','注意关联词：虽然……但是（转折）、因为……所以（因果）、如果……就（假设）、不但……而且（递进）。','选好后，把句子从头读一遍，看看通不通顺。'],
+z_yd:['先看问题，再读文章，找出和问题有关的句子。','注意“谁、在哪里、做什么、为什么”。','回答时用完整的句子。'],
+z_cy:['成语大多是四个字，意思固定，不能随便改字。','学成语要知道意思，也要会用：他做事一心一意。','常见成语：一心一意、半途而废、井井有条、自言自语、九牛一毛。'],
+p_wn:['Each digit has a place: ones, tens, hundreds, thousands, ten thousands.','The value of a digit depends on its place: in 4 572, the 5 is worth 500.','Rounding to the nearest 10: look at the ones digit. 5 or more, round up; less than 5, round down.','Compare numbers from the biggest place value first.'],
+p_addsub:['Line up the digits by place value: ones under ones, tens under tens.','Adding: if a column adds up to 10 or more, regroup (carry) to the next column.','Subtracting: if the top digit is smaller, regroup (borrow) from the next column.','Check subtraction by adding: answer + the number you took away = the starting number.'],
+p_muldiv:['Learn the times tables up to 12 × 12. Multiplication can be done in any order: 3 × 4 = 4 × 3.','Division is the opposite of multiplication: 24 ÷ 6 = 4 because 6 × 4 = 24.','To multiply by 10, add a zero at the end: 23 × 10 = 230.','Remainder: 17 ÷ 5 = 3 remainder 2.'],
+p_money:['$1 = 100 cents. Write $3.05 for 3 dollars 5 cents.','Line up the decimal points when adding or subtracting money.','Change = amount paid − cost.','Check your answer by estimating first: $4.95 is about $5.'],
+p_time:['1 hour = 60 minutes; 1 minute = 60 seconds; 1 day = 24 hours.','a.m. is from midnight to noon; p.m. is from noon to midnight.','To find an end time, count on the hours first, then the minutes.','Duration = end time − start time.'],
+p_meas:['1 m = 100 cm; 1 km = 1000 m.','1 kg = 1000 g.','1 ℓ = 1000 ml.','Change to the smaller unit by multiplying; change to the bigger unit by dividing.'],
+p_frac:['A fraction shows equal parts of a whole: 3/4 means 3 of 4 equal parts.','Equivalent fractions: multiply or divide the top and bottom by the same number (1/2 = 2/4 = 3/6).','Same denominators: add or subtract the numerators only.','Fraction of a set: 2/5 of 20 = 20 ÷ 5 × 2 = 8.'],
+p_area:['Perimeter is the distance around a shape. Add up all the sides.','Area is the space inside a shape, measured in square units (cm², m²).','Rectangle: area = length × breadth. Square: area = side × side.','Missing side: breadth = area ÷ length.'],
+p_angle:['A right angle is 90°. Angles on a straight line add up to 180°.','Angles at a point add up to 360°.','The three angles of a triangle add up to 180°.','Use a protractor to measure angles; start from 0° on one arm.'],
+p_dec:['Decimals show parts of a whole: 0.1 = 1 tenth, 0.01 = 1 hundredth.','Line up the decimal points when adding or subtracting.','× 10, × 100, × 1000 move the digits 1, 2 or 3 places to the left.','Rounding to 1 decimal place: look at the hundredths digit.'],
+p_pct:['Percent means "out of 100": 25% = 25/100 = 1/4.','To find x% of a number: x ÷ 100 × number.','Fraction to percentage: × 100%. 3/4 = 75%.','Discount = percentage × original price; new price = original − discount.'],
+p_avg:['Average = total ÷ number of items.','Total = average × number of items.','If one item changes, the total changes, so the average changes too.','Check: the average should lie between the smallest and largest values.'],
+p_ratio:['A ratio compares two or more quantities: 2 : 3.','Simplify a ratio by dividing all parts by the same number.','Model method: draw units. If 5 units = 40, then 1 unit = 8.','The order matters: boys : girls is not the same as girls : boys.'],
+p_speed:['Speed = distance ÷ time (km/h or m/s).','Distance = speed × time.','Time = distance ÷ speed.','Make sure the units match: minutes may need changing to hours.'],
+p_alg:['A letter stands for an unknown number: n + 3 means "3 more than n".','To find the value, substitute: if n = 4, then 2n + 1 = 9.','Simplify by collecting like terms: 3a + 2a = 5a.','2n means 2 × n; n² means n × n.'],
+p_e_gram:['Singular subjects take singular verbs: He runs. Plural subjects take plural verbs: They run.','Use the past tense for things that already happened: walked, went, ate.','Comparing two: -er (taller); comparing three or more: -est (tallest).','Use "an" before vowel sounds (an apple, an hour) and "a" before others (a ball).'],
+p_e_vocab:['Synonyms have similar meanings (big, large); antonyms have opposite meanings (big, small).','Read the whole sentence to guess a new word\'s meaning.','Learn describing words to make writing more interesting: huge, gentle, delighted.','Use a new word three times to remember it.'],
+p_e_punct:['Every sentence starts with a capital letter and ends with a full stop (.), question mark (?) or exclamation mark (!).','Names of people, places, days and months start with capital letters.','Use commas to separate items in a list.','Speech marks go around the words someone says: "Come here," said Mum.'],
+p_e_comp:['Read the passage twice: once for the story, once to find details.','Underline key words in the question and find them in the passage.','Answer in complete sentences.','For "how did he feel" questions, look for clues in actions and words.'],
+p_e_synth:['Join sentences without changing the meaning.','"Because" gives a reason; "so" gives a result; "although" shows a contrast.','"Who" is for people; "which" is for things and animals.','Don\'t repeat words that are already in the sentence.'],
+p_s_div:['Living things need air, food and water; they grow, respond and reproduce.','Groups: plants, animals, fungi and bacteria.','Animals can be grouped as mammals, birds, fish, reptiles, amphibians and insects.','Plants can be flowering (make seeds) or non-flowering (ferns and mosses make spores).'],
+p_s_mat:['Materials have properties: hard or soft, waterproof or not, transparent or opaque, flexible or not.','We choose materials because of their properties: plastic for raincoats (waterproof), metal for pots (conducts heat).','Common materials: wood, plastic, metal, glass, fabric, rubber, ceramic.'],
+p_s_mag:['Magnets attract magnetic materials: iron, steel, nickel and cobalt.','Every magnet has a north and a south pole. Like poles repel; unlike poles attract.','The magnetic force is strongest at the poles.','A freely hanging magnet points north–south, which is how a compass works.'],
+p_s_cyc:['A life cycle shows how a living thing grows and changes.','Four stages: egg → larva → pupa → adult (butterfly, mosquito, beetle).','Three stages: egg → nymph → adult (cockroach, grasshopper).','Plants: seed → seedling → young plant → adult plant. Seeds need water, air and warmth to germinate.'],
+p_s_plant:['Roots hold the plant firmly and take in water and mineral salts.','The stem holds the plant up and carries water and food.','Leaves make food by photosynthesis, using light, water and carbon dioxide.','Flowers make seeds; after fertilisation, the ovary becomes the fruit.'],
+p_s_matter:['Matter is anything that has mass and occupies space.','Solids have a fixed shape and volume; liquids have a fixed volume but take the shape of the container; gases have neither.','Heating: melting (solid → liquid), boiling (liquid → gas). Cooling: condensation (gas → liquid), freezing (liquid → solid).'],
+p_s_light:['Light travels in straight lines.','We see an object when light reflected from it enters our eyes.','Opaque objects block light and make shadows; transparent objects let light through.','The closer an object is to the light, the bigger its shadow.'],
+p_s_heat:['Heat flows from a hotter place to a colder place.','Temperature (°C) measures how hot something is; use a thermometer.','Metals are good conductors of heat; plastic, wood and air are poor conductors (insulators).','Most things expand when heated and contract when cooled.'],
+p_s_human:['Digestive system: breaks down food (mouth → gullet → stomach → small intestine → large intestine).','Respiratory system: lungs take in oxygen and give out carbon dioxide.','Circulatory system: the heart pumps blood to carry oxygen and food around the body.','Skeletal and muscular systems: support, protect and move the body.'],
+p_s_water:['Evaporation: water turns into water vapour when it gains heat.','Condensation: water vapour turns into water droplets when it loses heat.','Water cycle: evaporation → condensation (clouds) → precipitation (rain) → collection.','Evaporation is faster when it is warm, windy, and the surface area is large.'],
+p_s_elec:['A circuit needs a battery, wires and a component (bulb), joined in a closed loop.','Metals are electrical conductors; plastic, rubber and wood are insulators.','A switch opens or closes the circuit.','More batteries in series make a bulb brighter. Never play with mains electricity.'],
+p_s_force:['A force is a push or a pull. It can move, stop, or change the shape or direction of an object.','Friction acts against movement between surfaces in contact.','Gravity pulls everything towards the Earth.','Energy can change form: a stretched spring stores elastic potential energy; a moving ball has kinetic energy.'],
+p_s_env:['A food chain starts with a producer (a plant) and shows who eats whom: grass → grasshopper → bird.','Plants are producers; animals are consumers; fungi and bacteria are decomposers.','Changing one part of a food web affects the others.','We can protect the environment by reducing, reusing and recycling.'],
+p_z_ci:['每天认识几个新词语，读一读，写一写。','把词语和图片或动作一起记，更容易记住。','学会的词语，要在说话中用出来。'],
+p_z_liang:['数字和东西中间要用量词：一本书、两只猫。','常用的量词：个、只、本、张、条、支、件。','“个”最常用，但很多东西有自己的量词。'],
+p_z_py:['拼音帮助我们读出汉字。','四个声调：ā á ǎ à。读的时候要注意声调。','轻声读得又短又轻，例如 mā ma。'],
+p_z_ju:['先把句子读完，想一想意思。','选的词要让句子通顺。','“因为……所以”说原因和结果。'],
+p_z_yd:['慢慢读，读两遍。','先看问题，再在文章里找答案。','回答时写完整的句子。']};
+
 const LV=250,PEERJS='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
-const SUBJ=[['Math','G1'],['English','G2'],['Biology','G2'],['Chemistry','G2'],['Chinese','G1']];
+const SEC_SUBS=['Math','English','Biology','Chemistry','Chinese'],PRI_SUBS=['English','Math','Science','Chinese'];
+const subs=()=>S.stage==='P'?PRI_SUBS:SEC_SUBS,lvOpts=()=>S.stage==='P'?['Standard','Foundation']:['G1','G2','G3'],maxYr=()=>S.stage==='P'?6:4;
+const yrLabel=n=>(S.stage==='P'?'P':'Sec ')+n,kidYr=k=>(k.stage==='P'?'Primary '+k.sec:'Sec '+k.sec);
 const TITLES=['Rookie','Starter','Grinder','Focused','Steady','Sharp','Locked-in','Pro','Elite','Legend'];
 const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone the best thing that happened at school today.'],['你最喜欢的游戏是什么？为什么？','What is your favourite game, and why?'],['用中文点一次饭菜或饮料。','Order food or a drink in Chinese once today.'],['跟家人说说你明天的计划。','Tell your family your plan for tomorrow.'],['介绍一个你很喜欢的朋友。','Describe a friend you really like.'],['今天的天气怎么样？你喜欢这样的天气吗？','How is the weather today? Do you like it?'],['如果你有一百块钱，你会买什么？','If you had $100, what would you buy?'],['说说你周末做了什么。','Talk about what you did at the weekend.'],['你觉得哪一科最难？为什么？','Which subject do you find hardest, and why?'],['教家人玩你喜欢的游戏，全程用中文。','Teach a family member your favourite game, only in Chinese.'],['说说一部你喜欢的电影或视频。','Talk about a movie or video you like.'],['你长大以后想做什么工作？','What job would you like to do when you grow up?'],['问爸爸妈妈他们小时候的一件趣事。','Ask your parents about a funny thing from their childhood.'],['描述一下你的房间。','Describe your room.'],['今天你学到了什么新东西？','What new thing did you learn today?'],['吃晚饭时，用中文说三件今天发生的事。','At dinner, say three things that happened today, in Chinese.']];
 const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',learn:'<path d="M2 6l10-4 10 4-10 4z"/><path d="M6 8v6c3 3 9 3 12 0V8"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
 const TABS=[['today','Today'],['learn','Learn'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['rewards','Rewards'],['parent','Admin']];
 const SLOTS={s:"Student's device",p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
-const PARENT_ONLY=new Set(['rc','setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
-const def=()=>({name:'',pins:{},xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:3,quiz:[],mist:[],myq:[],exams:[]});
+const PARENT_ONLY=new Set(['kidAdd','kidDel','rc','setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
+const defKid=(stage='S')=>({id:'',name:'',pin:null,stage,xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:stage==='P'?{English:'Standard',Math:'Standard',Science:'Standard',Chinese:'Standard'}:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:stage==='P'?1:3,quiz:[],mist:[],myq:[],exams:[]});
+const def=()=>defKid('S'),defG=()=>({pins:{},rcH:null,kids:{},order:[]});
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dk=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -633,7 +909,7 @@ const pipe=async(u,stream)=>new Uint8Array(await new Response(new Blob([u]).stre
 const pinHash=async(role,pin)=>hex(await sha('pin:'+cfg.fam+':'+role+':'+pin));
 
 /* ---------- state = every action from every device, replayed in time order ---------- */
-let cfg={},A=[],have=new Set(),S=def(),role=null,peerTxt='',peerOk=false;
+let cfg={},A=[],have=new Set(),G=defG(),S=def(),cur=null,role=null,peerTxt='',peerOk=false;
 const cmp=(a,b)=>(a.ts-b.ts)||(a.id<b.id?-1:a.id>b.id?1:0);
 const dayOf=(S,d)=>S.log[d]||(S.log[d]={f:0,cn:0,hw:0,ls:0,bonus:0,g:0});
 const usedOnS=(S,d)=>S.used.filter(u=>u.d===d).reduce((a,u)=>a+u.m,0);
@@ -641,13 +917,18 @@ function gainS(S,d,x,why,mins=0){const b=Math.floor(S.xp/LV);S.xp+=x;S.coins+=x;
   let m='+'+x+' XP · '+why+(mins?' · +'+mins+' min game time':'');
   if(!L.bonus&&L.f&&L.cn&&L.hw&&L.ls){L.bonus=1;S.xp+=50;S.coins+=50;m+=' · All missions done! +50 bonus'}
   if(Math.floor(S.xp/LV)>b)m='LEVEL UP! You reached level '+(Math.floor(S.xp/LV)+1)+'. '+m;return m}
+function addKid(G,id,name,pin,stage,year,lv){const k=defKid(stage==='P'?'P':'S');k.id=id;k.name=name;k.pin=pin;if(year)k.sec=Math.min(k.stage==='P'?6:4,Math.max(1,+year));if(lv)Object.assign(k.lv,lv);G.kids[id]=k;G.order.push(id)}
+const RG={
+  setup:(G,a)=>{if(G.pins.parent)return '';G.pins.parent=a.pp;G.rcH=a.rc||null;addKid(G,'k1',a.name,a.sp,a.stage,a.year);return 'Family created'},
+  rc:(G,a)=>{G.rcH=a.h;return 'New recovery code saved'},
+  recover:(G,a)=>{if(!G.rcH)return{err:'This family has no recovery code yet. Use "Start over on this device".'};if(a.rc!==G.rcH)return{err:'That recovery code is not right.'};G.pins.parent=a.h;return 'Parent PIN reset. Log in with your new PIN.'},
+  kidAdd:(G,a)=>{if(G.kids[a.kid])return '';addKid(G,a.kid,a.name,a.h,a.stage,a.year);return a.name+' added. They can log in with their own PIN.'},
+  kidDel:(G,a)=>{if(!G.kids[a.kid]||G.order.length<2)return '';const n=G.kids[a.kid].name;delete G.kids[a.kid];G.order=G.order.filter(k=>k!==a.kid);return n+' removed'}
+};
 const R={
-  setup:(S,a)=>{if(S.pins.parent)return '';S.name=a.name;S.pins={parent:a.pp,student:a.sp};S.rcH=a.rc||null;return 'Family created'},
-  rc:(S,a)=>{S.rcH=a.h;return 'New recovery code saved'},
-  recover:(S,a)=>{if(!S.rcH)return{err:'This family has no recovery code yet. Use "Start over on this device".'};if(a.rc!==S.rcH)return{err:'That recovery code is not right.'};S.pins.parent=a.h;return 'Parent PIN reset. Log in with your new PIN.'},
-  pin:(S,a)=>{S.pins[a.role]=a.h;return (a.role==='parent'?'Parent':'Student')+' PIN changed'},
+  pin:(S,a)=>{S.pin=a.h;return S.name+"'s PIN changed"},
   name:(S,a)=>{S.name=a.v;return 'Name saved'},
-  restore:(S,a)=>{const k={name:S.name,pins:S.pins};for(const x of Object.keys(S))delete S[x];Object.assign(S,def(),a.state,k);return 'Earlier progress carried over'},
+  restore:(S,a)=>{const k={id:S.id,name:S.name,pin:S.pin,stage:S.stage};for(const x of Object.keys(S))delete S[x];Object.assign(S,def(),a.state,k);return 'Earlier progress carried over'},
   focus:(S,a)=>{dayOf(S,a.d).f++;return gainS(S,a.d,a.m===25?40:20,a.m+'-min '+a.s+' focus',a.m===25?15:10)},
   hwAdd:(S,a)=>{S.hw.push({id:a.hid,s:a.s,t:a.t,due:a.due,done:null});return 'Homework added'},
   hwDone:(S,a)=>{const h=S.hw.find(x=>x.id===a.hid);if(!h||h.done)return '';h.done=a.d;dayOf(S,a.d).hw++;const e=h.done<=h.due;return gainS(S,a.d,e?40:30,'homework done'+(e?' on time':''))},
@@ -669,7 +950,7 @@ const R={
   note:(S,a)=>{S.notes.push({t:a.t,x:a.x,d:a.d});return a.x?gainS(S,a.d,a.x,'encouragement sent'):'Message sent'},
   cap:(S,a)=>{S.cap=a.v;return 'Daily limit set'},
   lv:(S,a)=>{if(!LVN[a.v])return '';S.lv[a.sub]=a.v;return a.sub+' level set to '+a.v},
-  sec:(S,a)=>{S.sec=Math.min(4,Math.max(1,+a.v||3));return 'School year set to Sec '+S.sec},
+  sec:(S,a)=>{S.sec=Math.min(S.stage==='P'?6:4,Math.max(1,+a.v||1));return 'School year set to '+(S.stage==='P'?'P':'Sec ')+S.sec},
   qAdd:(S,a)=>{S.myq.push({id:a.qid,s:a.s,q:a.q,c:a.c,w:a.w,e:a.e});return 'Question saved to '+a.s+' → My own questions'},
   exAdd:(S,a)=>{S.exams.push({id:a.eid,n:a.n,dt:a.dt});return 'Test added'},
   exDel:(S,a)=>{S.exams=S.exams.filter(x=>x.id!==a.eid);return ''},
@@ -681,15 +962,21 @@ const R={
     const x=Math.round(a.c*per*up)+(a.mode==='mock'?25:a.mode==='daily'?30:(a.n&&a.c/a.n>=.8?20:0));
     return gainS(S,a.d,x,a.c+'/'+a.n+' in '+a.title+(up>1?' · level-up bonus':''))}
 };
-function apply(S,a){if(PARENT_ONLY.has(a.type)&&a.by!=='parent')return '';try{return R[a.type](S,a)}catch(e){return ''}}
-function replay(){S=def();for(const a of A)apply(S,a)}
-async function act(type,args={},by=role){
+const known=t=>!!(R[t]||RG[t]);
+function applyG(G,a){if(PARENT_ONLY.has(a.type)&&a.by!=='parent')return '';try{
+  if(RG[a.type])return RG[a.type](G,a);
+  if(a.type==='pin'&&a.role==='parent'){G.pins.parent=a.h;return 'Parent PIN changed'}
+  const k=G.kids[a.kid||'k1'];return k&&R[a.type]?R[a.type](k,a):''}catch(e){return ''}}
+function pickS(){const id=role&&role!=='parent'?role:(cfg.ui&&G.kids[cfg.ui.kid]?cfg.ui.kid:G.order[0]);cur=id||null;S=G.kids[id]||def()}
+function replay(){G=defG();for(const a of A)applyG(G,a);pickS()}
+async function act(type,args={},by){if(by===undefined)by=role==='parent'?'parent':role?'student':null;
   const ts=Math.max(Date.now(),A.length?A[A.length-1].ts+1:0),a=Object.assign({id:uid(),ts,d:dk(),by,type},args);
-  const probe=clone(S),r=apply(probe,a);if(r&&r.err)return toast(r.err);
-  A.push(a);have.add(a.id);if(A.length>1&&cmp(A[A.length-2],a)>0){A.sort(cmp);replay()}else S=probe;
+  if(!RG[type]&&!(type==='pin'&&a.role==='parent')&&!a.kid)a.kid=cur;
+  const probe=clone(G),r=applyG(probe,a);if(r&&r.err)return toast(r.err);
+  A.push(a);have.add(a.id);if(A.length>1&&cmp(A[A.length-2],a)>0){A.sort(cmp);replay()}else{G=probe;pickS()}
   await Store.add([a]);broadcast([a]);if(r)toast(r);render()}
 async function merge(list,from){let added=[];
-  for(const a of list){if(a&&typeof a.id==='string'&&!have.has(a.id)&&R[a.type]&&typeof a.ts==='number'){A.push(a);have.add(a.id);added.push(a)}}
+  for(const a of list){if(a&&typeof a.id==='string'&&!have.has(a.id)&&known(a.type)&&typeof a.ts==='number'){A.push(a);have.add(a.id);added.push(a)}}
   if(added.length){A.sort(cmp);replay();await Store.add(added);render();if(from)toast('Synced '+added.length+' update'+(added.length>1?'s':'')+' from '+from)}
   return added.length}
 
@@ -728,12 +1015,12 @@ async function mergeCode(el){try{const n=await merge(await readCode(el.value));e
 
 
 /* ---------- learning engine: practice, mock tests, daily challenge, mistake book ---------- */
-const LSUBS=['Math','English','Biology','Chemistry','Chinese'],LVN={G1:1,G2:2,G3:3};
+const LVN={G1:1,G2:2,G3:3,Foundation:1,Standard:2};
 const TMAP={};TOPICS.forEach(t=>TMAP[t[0]]=t);
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const topicName=k=>k.startsWith('my_')?'My own questions':(TMAP[k]?TMAP[k][2]:k);
 const topicSub=k=>k.startsWith('my_')?k.slice(3):(TMAP[k]?TMAP[k][1]:'');
-function topicsFor(sub,lv,sec){const n=LVN[lv]||1,out=TOPICS.filter(t=>t[1]===sub&&t[3].includes(String(n))&&+t[4]<=sec);
+function topicsFor(sub,lv,sec){const n=LVN[lv]||1,out=TOPICS.filter(t=>(t[5]||'S')===S.stage&&t[1]===sub&&t[3].includes(String(n))&&+t[4]<=sec);
   if(S.myq.some(q=>q.s===sub))out.push(['my_'+sub,sub,'My own questions','123','1']);return out}
 function norm(g,k,id){const it={id,t:k,s:topicSub(k),type:g.type||'mcq',q:g.q,e:g.e||''};
   if(it.type==='num'){it.ans=g.ans;it.tol=g.tol||0.001}else{const o=[...new Set(g.o.map(String))].slice(0,4),idx=shuffle(o.map((_,i)=>i));it.opts=idx.map(i=>o[i]);it.c=idx.indexOf(0)}return it}
@@ -752,8 +1039,8 @@ function startQuiz(mode,sub,lv,title,items){if(!items.length)return toast('No qu
   clearInterval(qTick);if(QZ.end)qTick=setInterval(()=>{if(!QZ||QZ.done||!QZ.end)return clearInterval(qTick);const l=QZ.end-Date.now();if(l<=0)finishQuiz();else if($('qClock'))$('qClock').textContent=mmss(l)},1000);
   cfg.ui.tab='learn';render();renderRun();scrollTo(0,0)}
 function practise(k,lv){startQuiz('practice',topicSub(k),lv,topicName(k),itemsFor(k,10))}
-function mock(sub,lv,sec){const ks=topicsFor(sub,lv,sec).map(t=>t[0]);startQuiz('mock',sub,lv,`${sub} ${lv} mock test (up to Sec ${sec})`,mixed(ks,20))}
-function daily(){const m=mastery(),cands=[];for(const s of LSUBS)for(const t of topicsFor(s,S.lv[s]||'G1',S.sec))cands.push(t[0]);
+function mock(sub,lv,sec){const ks=topicsFor(sub,lv,sec).map(t=>t[0]);startQuiz('mock',sub,lv,`${sub} ${lv} mock test (up to ${yrLabel(sec)})`,mixed(ks,20))}
+function daily(){const m=mastery(),cands=[];for(const s of subs())for(const t of topicsFor(s,S.lv[s]||lvOpts()[0],S.sec))cands.push(t[0]);
   const ks=shuffle(cands).sort((a,b)=>(m[a]?m[a].p:50)-(m[b]?m[b].p:50)).slice(0,5);startQuiz('daily','Mixed',null,'Daily challenge',ks.map(k=>itemsFor(k,1)[0]).filter(Boolean))}
 function review(sub){const list=S.mist.filter(x=>!sub||x.s===sub).slice(-10);if(!list.length)return toast('No mistakes to review. Nice!');
   startQuiz('review',sub||'Mixed',null,'Mistake review',shuffle(list.map(x=>Object.assign({},x))))}
@@ -778,39 +1065,43 @@ function renderRun(){const el=$('lRun'),z=QZ;if(!z){el.innerHTML='';return}
   if(it.type==='num'&&!fb&&$('qNum'))$('qNum').focus()}
 function renderLearn(){const run=!!QZ,sub=!run&&cfg.ui.lsub;$('lRun').classList.toggle('hidden',!run);$('lSub').classList.toggle('hidden',!sub);$('lHome').classList.toggle('hidden',run||!!sub);
   const m=mastery(),avg=ks=>{const v=ks.map(k=>m[k]&&m[k].p).filter(x=>x!=null);return v.length?Math.round(v.reduce((a,x)=>a+x,0)/v.length):null};
-  $('lSubs').innerHTML=LSUBS.map(s=>{const lv=S.lv[s]||'G1',ks=topicsFor(s,lv,S.sec).map(t=>t[0]),p=avg(ks),last=S.quiz.filter(r=>r.sub===s&&r.mode==='mock').pop();
-    return `<div class="card"><div class="subj" style="border:0;padding:0"><div class="head"><b>${s} <span class="tag">${lv}</span></b><span class="muted">${ks.length} topics</span></div>
+  $('lSubs').innerHTML=subs().map(s=>{const lv=S.lv[s]||lvOpts()[0],ks=topicsFor(s,lv,S.sec).map(t=>t[0]),p=avg(ks),last=S.quiz.filter(r=>r.sub===s&&r.mode==='mock').pop();
+    return `<div class="card"><div class="subj" style="border:0;padding:0"><div class="head"><b>${s} <span class="tag">${lv}</span></b><span class="muted">${ks.length?ks.length+' topics':'From P3'}</span></div>
       <div class="bar"><i style="width:${p||0}%"></i></div><p class="muted" style="margin:6px 0 10px">${p==null?'Not started yet':'Mastery '+p+'%'}${last?` · last mock ${Math.round(last.c/last.n*100)}%`:''}</p>
       <button data-lsub="${s}" style="width:100%">Open ${s}</button></div></div>`}).join('');
   $('lMistTxt').textContent=S.mist.length?`${S.mist.length} question${S.mist.length>1?'s':''} to review. Get one right to clear it (+5 XP each).`:'No mistakes saved. Questions you get wrong will appear here.';
-  if(!sub)return;const L=cfg.ui.llv&&cfg.ui.llv[sub]||S.lv[sub]||'G1',sec=+(cfg.ui.lsec||S.sec);
+  if(!sub)return;const base=S.lv[sub]||lvOpts()[0];let L=cfg.ui.llv&&cfg.ui.llv[cur+sub]||base;if(!lvOpts().includes(L))L=base;let sec=+(cfg.ui.lsec&&cfg.ui.lsec[cur]||S.sec);if(sec>maxYr())sec=S.sec;
+  if($('lsLv').dataset.st!==S.stage){$('lsLv').innerHTML=lvOpts().map(g=>`<option>${g}</option>`).join('');$('lsSec').innerHTML=Array.from({length:maxYr()},(_,i)=>`<option value="${i+1}">${yrLabel(i+1)}</option>`).join('');$('lsLv').dataset.st=S.stage}
   $('lsT').textContent=sub;if(document.activeElement!==$('lsLv'))$('lsLv').value=L;if(document.activeElement!==$('lsSec'))$('lsSec').value=String(sec);
-  $('lsNote').textContent=LVN[L]>LVN[S.lv[sub]||'G1']?`Challenge mode: ${L} is above your ${S.lv[sub]||'G1'} level. Correct answers earn 50% more XP.`:`Your ${sub} level is ${S.lv[sub]||'G1'}. Practise a higher level for bonus XP.`;
+  $('lsNote').textContent=LVN[L]>LVN[base]?`Challenge mode: ${L} is above your ${base} level. Correct answers earn 50% more XP.`:LVN[base]<(S.stage==='P'?2:3)?`Your ${sub} level is ${base}. Practise a higher level for bonus XP.`:`Your ${sub} level is ${base}.`;
   const tops=topicsFor(sub,L,sec);
-  $('lsTop').innerHTML=tops.map(t=>{const x=m[t[0]];return `<div class="tp"><div><b>${esc(t[2])}</b> <span class="tag">${t[0].startsWith('my_')?'Own':'Sec '+t[4]}</span><br><span class="muted">${x?'Mastery '+x.p+'%':(GEN[t[0]]?'Unlimited questions':poolFor(t[0]).length+' questions')}</span></div>
-    <button class="sm" data-prac="${esc(t[0])}">Practise</button><div class="bar"><i style="width:${x?x.p:0}%"></i></div></div>`}).join('')||'<p class="muted">No topics for this level and year.</p>';
+  $('lsTop').innerHTML=tops.map(t=>{const x=m[t[0]];return `<div class="tp"><div><b>${esc(t[2])}</b> <span class="tag">${t[0].startsWith('my_')?'Own':yrLabel(t[4])}</span><br><span class="muted">${x?'Mastery '+x.p+'%':(GEN[t[0]]?'Unlimited questions':poolFor(t[0]).length+' questions')}</span></div>
+    <span class="row" style="flex-wrap:nowrap;gap:6px">${NOTES[t[0]]?`<button class="ghost sm" data-note="${esc(t[0])}">Notes</button>`:''}<button class="sm" data-prac="${esc(t[0])}">Practise</button></span><div class="bar"><i style="width:${x?x.p:0}%"></i></div></div>`}).join('')||`<p class="muted">${sub==='Science'&&S.stage==='P'?'Primary Science starts in P3.':'No topics for this level and year.'}</p>`;
+  const nk=cfg.ui.lnote;$('lNote').classList.toggle('hidden',!(nk&&NOTES[nk]));if(nk&&NOTES[nk])$('lNote').innerHTML=`<h3>${esc(topicName(nk))} · notes</h3><ul class="notes">${NOTES[nk].map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="row"><button data-prac="${esc(nk)}">Practise this topic</button><button class="ghost" id="noteClose">Close</button></div>`;
   $('lsHist').innerHTML=S.quiz.filter(r=>r.sub===sub).slice(-6).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)}</span></span><b class="num">${r.c}/${r.n}</b></li>`).join('')||'<li class="muted">No results yet.</li>'}
 
 /* ---------- views ---------- */
 const day=()=>S.log[dk()]||{};
 function streak(){let n=0,d=new Date();const on=k=>{const l=S.log[k];return l&&(l.f||l.cn||l.hw||l.ls)};if(!on(dk(d)))d.setDate(d.getDate()-1);while(on(dk(d))){n++;d.setDate(d.getDate()-1)}return n}
-const opts=()=>SUBJ.map(([s])=>`<option value="${s}">${s}</option>`).join('');
-['fSubj','lsSubj','hwSubj','mkSubj'].forEach(i=>$(i).innerHTML=opts());
+const opts=()=>subs().map(s=>`<option value="${s}">${s}</option>`).join('');
 ['nSlot','jSlot'].forEach(i=>$(i).innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}">${v}</option>`).join(''));
 $('jSlot').value='p1';$('hwDue').value=dk(new Date(Date.now()+864e5));
 function renderSync(){const t=cfg.fam?peerTxt:'';$('hSync').innerHTML=t?`<span class="dot ${peerOk?'ok':''}"></span>${esc(t)}`:'';$('gSync').textContent=t;
   $('pLive').textContent=t;$('pDot').className='dot'+(peerOk?' ok':'')}
 function renderGate(){const g=!role;$('gate').classList.toggle('hidden',!g);if(!g)return;
   $('gWelcome').classList.toggle('hidden',!!cfg.fam);$('gLogin').classList.toggle('hidden',!cfg.fam);
-  const ready=!!S.pins.parent;$('gReady').classList.toggle('hidden',!ready);$('gWait').classList.toggle('hidden',ready);
-  $('wName').textContent=S.name||'Student'}
+  const ready=!!G.pins.parent;$('gReady').classList.toggle('hidden',!ready);$('gWait').classList.toggle('hidden',ready);
+  if(who!=='parent'&&!G.kids[who])who=G.order[0]||'parent';
+  $('whoBox').innerHTML=G.order.map(k=>`<button data-who="${esc(k)}" class="${who===k?'on':''}">${esc(G.kids[k].name||'Student')}<small>${kidYr(G.kids[k])}</small></button>`).join('')+`<button data-who="parent" class="${who==='parent'?'on':''}">Parent<small>Administrator</small></button>`}
 function render(){
-  document.body.classList.toggle('student',role!=='parent');renderGate();renderSync();if(!role)return;
+  pickS();document.body.classList.toggle('student',role!=='parent');renderGate();renderSync();if(!role)return;
+  const ks=$('kidSel');ks.classList.toggle('hidden',!(role==='parent'&&G.order.length>1));if(role==='parent'&&document.activeElement!==ks)ks.innerHTML=G.order.map(k=>`<option value="${esc(k)}" ${k===cur?'selected':''}>${esc(G.kids[k].name)}</option>`).join('');
+  if($('fSubj').dataset.st!==S.stage+cur){['fSubj','lsSubj','hwSubj','mkSubj'].forEach(i=>$(i).innerHTML=opts());$('fSubj').dataset.st=S.stage+cur}
   if(role!=='parent'&&cfg.ui.tab==='parent')cfg.ui.tab='today';
   $('nav').innerHTML=TABS.filter(([k])=>k!=='parent'||role==='parent').map(([k,n])=>`<button data-tab="${k}"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${n}</button>`).join('');
   $('nav').style.gridTemplateColumns=`repeat(${role==='parent'?7:6},minmax(0,1fr))`;
   const lv=Math.floor(S.xp/LV)+1;$('lv').textContent=lv;$('ring').style.setProperty('--p',(S.xp%LV)/LV*100);
-  $('hName').textContent=S.name?S.name+"'s Level Up":'Level Up';$('hWho').textContent=role==='parent'?'Parent (admin)':'Student';
+  $('hName').textContent=S.name?S.name+"'s Level Up":'Level Up';$('hWho').textContent=role==='parent'?'Parent (admin)':kidYr(S);
   $('streak').textContent=streak();$('coins').textContent=S.coins;$('bank').textContent=S.bank+'m';$('bank2').textContent=S.bank+' min';
   $('title').innerHTML=`<b>${TITLES[Math.min(lv-1,9)]}</b> · ${LV-S.xp%LV} XP to level ${lv+1}`;
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===cfg.ui.tab));
@@ -827,9 +1118,9 @@ function render(){
   const p=PROMPTS[cfg.ui.p%PROMPTS.length];$('zh').textContent=p[0];$('zhEn').textContent=p[1];
   const wkK=dk(new Date(Date.now()-6*864e5)),wkMin=S.cnlog.filter(c=>c.d>=wkK).reduce((a,c)=>a+c.m,0);
   $('cnBar').style.width=Math.min(100,wkMin/70*100)+'%';$('cnWeek').textContent=wkMin+' min in the last 7 days'+(wkMin>=70?' · goal reached!':'');
-  $('subjects').innerHTML=SUBJ.map(([s,g])=>{const m=S.marks.filter(x=>x.s===s).slice(-8),last=m[m.length-1],prev=m[m.length-2];
+  $('subjects').innerHTML=subs().map(s=>{const m=S.marks.filter(x=>x.s===s).slice(-8),last=m[m.length-1],prev=m[m.length-2];
     const tr=last&&prev?(last.v>prev.v?`<span style="color:var(--hi)">▲ ${last.v-prev.v}</span>`:last.v<prev.v?`<span class="late">▼ ${prev.v-last.v}</span>`:'same'):'';
-    return `<div class="subj"><div class="head"><b>${s} <span class="tag">${S.lv[s]||g}</span></b><span>${last?`<b class="num">${+last.v}%</b> ${tr}`:'<span class="muted">No marks yet</span>'}</span></div>${m.length?`<div class="bars">${m.map(x=>`<i class="${x.v<50?'low':''}" style="height:${Math.max(4,+x.v||0)}%" title="${esc(x.l)}: ${+x.v}%"></i>`).join('')}</div>`:''}</div>`}).join('');
+    return `<div class="subj"><div class="head"><b>${s} <span class="tag">${S.lv[s]||''}</span></b><span>${last?`<b class="num">${+last.v}%</b> ${tr}`:'<span class="muted">No marks yet</span>'}</span></div>${m.length?`<div class="bars">${m.map(x=>`<i class="${x.v<50?'low':''}" style="height:${Math.max(4,+x.v||0)}%" title="${esc(x.l)}: ${+x.v}%"></i>`).join('')}</div>`:''}</div>`}).join('');
   $('rwList').innerHTML=S.rewards.map((r,i)=>`<li><span class="txt">${esc(r.n)}</span><span class="xp">${+r.c}</span><button class="acc sm" data-buy="${i}" ${S.coins<r.c?'disabled':''}>Redeem</button><button class="ghost sm po" data-rdel="${i}" aria-label="Delete reward">✕</button></li>`).join('');
   $('capNote').textContent='Earned from focus sessions. Daily limit: '+(S.cap>=9999?'none':S.cap+' min')+', used today: '+usedOnS(S,dk())+' min.';
   $('notes').innerHTML=S.notes.filter(n=>n.d>=wkK).slice(-2).reverse().map(n=>`<div class="note"><b>From your parents</b> · ${fmtD(n.d)}${n.x?` · +${+n.x} XP`:''}<br>${esc(n.t)}</div>`).join('');
@@ -855,9 +1146,11 @@ function renderParent(){const w=weekStats();
   $('pLearn').innerHTML=[[wq.length,'quizzes done',wq.length<3],[qn,'questions answered'],[qn?Math.round(qc/qn*100)+'%':'–','average score',qn&&qc/qn<.5],[S.mist.length,'mistakes to review',S.mist.length>30]].map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
   $('pMock').innerHTML=S.quiz.filter(r=>r.mode==='mock').slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)} · ${Math.round((r.secs||0)/60)} min</span></span><b class="num">${Math.round(r.c/r.n*100)}%</b></li>`).join('')||'<li class="muted">No mock tests yet.</li>';
   const mm=mastery();$('pWeak').innerHTML=Object.entries(mm).filter(([,x])=>x.n>=4&&x.p<60).sort((x,y)=>x[1].p-y[1].p).slice(0,5).map(([k,x])=>`<li><span class="tag">${esc(topicSub(k))}</span><span class="txt">${esc(topicName(k))}</span><b class="num">${x.p}%</b></li>`).join('')||'<li class="muted">No weak topics yet (needs a few quizzes first).</li>';
-  if(!$('lvSet').contains(document.activeElement))$('lvSet').innerHTML=LSUBS.map(s=>`<div><label>${s}</label><select data-lvsub="${s}">${['G1','G2','G3'].map(g=>`<option ${S.lv[s]===g?'selected':''}>${g}</option>`).join('')}</select></div>`).join('')+`<div><label>School year</label><select id="secSel">${[1,2,3,4].map(n=>`<option value="${n}" ${S.sec===n?'selected':''}>Sec ${n}</option>`).join('')}</select></div>`;
+  if(!$('lvSet').contains(document.activeElement))$('lvSet').innerHTML=subs().map(s=>`<div><label>${s}</label><select data-lvsub="${s}">${lvOpts().map(g=>`<option ${S.lv[s]===g?'selected':''}>${g}</option>`).join('')}</select></div>`).join('')+`<div><label>School year</label><select id="secSel">${Array.from({length:maxYr()},(_,i)=>i+1).map(n=>`<option value="${n}" ${S.sec===n?'selected':''}>${yrLabel(n)}</option>`).join('')}</select></div>`;
+  $('kidList').innerHTML=G.order.map(k=>{const x=G.kids[k];return `<li><span class="txt"><b>${esc(x.name)}</b><br><span class="muted">${kidYr(x)} · Level ${Math.floor(x.xp/LV)+1}</span></span>${k===cur?'<span class="tag">Viewing</span>':`<button class="ghost sm" data-kview="${esc(k)}">View</button>`}${G.order.length>1?`<button class="ghost sm" data-kdel="${esc(k)}" aria-label="Remove">✕</button>`:''}</li>`}).join('');
+  $('pStuName').textContent=S.name;
   if(document.activeElement!==$('capSel'))$('capSel').value=String(S.cap);if(document.activeElement!==$('nmIn'))$('nmIn').value=S.name}
-function report(){const w=weekStats(),mk=SUBJ.map(([s])=>{const m=S.marks.filter(x=>x.s===s).pop();return m?s+' '+m.v+'%':null}).filter(Boolean).join(', ')||'none logged';
+function report(){const w=weekStats(),mk=subs().map(s=>{const m=S.marks.filter(x=>x.s===s).pop();return m?s+' '+m.v+'%':null}).filter(Boolean).join(', ')||'none logged';
   return `${S.name||'Level Up'} weekly report (${fmtD(w.ks[0])} – ${fmtD(w.ks[6])})\nActive days: ${w.act}/7 · Streak: ${streak()} days · Level ${Math.floor(S.xp/LV)+1}\nFocus sessions: ${w.f}\nHomework done: ${w.hw} (overdue now: ${w.od})\nChinese spoken: ${w.cn} min (goal 70)\nClass reflections: ${w.ls}, average focus ${w.lf}/3\nGame time: earned ${w.g} min, used ${w.u} min\nPractice: ${S.quiz.filter(r=>r.d>=w.ks[0]).length} quizzes, ${(q=>q.n?Math.round(q.c/q.n*100)+'% average':'none')(S.quiz.filter(r=>r.d>=w.ks[0]).reduce((a,r)=>({c:a.c+r.c,n:a.n+r.n}),{c:0,n:0}))}\nLatest marks: ${mk}`}
 
 /* ---------- focus timer (this device only) ---------- */
@@ -868,14 +1161,15 @@ function renderTimer(){const T=cfg.ui.timer;
     if(left<=0)finish();else if(!ticker)ticker=setInterval(renderTimer,1000)}
   else{clearInterval(ticker);ticker=null;$('fSubj').disabled=false;$('clock').textContent='25:00';if(!$('fBtns').querySelector('[data-start]'))$('fBtns').innerHTML=`<button data-start="25">Start 25 min</button><button class="ghost" data-start="15">15 min</button>`}}
 function beep(){try{const a=new (window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.frequency.value=880;o.connect(a.destination);o.start();o.stop(a.currentTime+.4)}catch(e){}}
-function finish(){const T=cfg.ui.timer;cfg.ui.timer=null;clearInterval(ticker);ticker=null;Store.saveCfg();beep();act('focus',{m:T.m,s:T.s},T.by||role||'student')}
+function finish(){const T=cfg.ui.timer;cfg.ui.timer=null;clearInterval(ticker);ticker=null;Store.saveCfg();beep();act('focus',{m:T.m,s:T.s,kid:T.kid||cur},T.by||'student')}
 const saveUI=()=>{Store.saveCfg();render()};
 
 /* ---------- login and setup ---------- */
 const ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode=()=>{const r=crypto.getRandomValues(new Uint32Array(16));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
 const fmtCode=c=>c?c.replace(/(.{4})(?=.)/g,'$1-'):'';
-let who='student';
+let who='k1';
+const kidRole=k=>k==='k1'?'student':'student:'+k;
 const newRc=()=>{const r=crypto.getRandomValues(new Uint32Array(12));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
 const rcHash=async c=>hex(await sha('rc:'+cfg.fam+':'+c.toUpperCase().replace(/[^A-Z0-9]/g,'')));
 function renderRc(){const c=cfg.ui.newRc;$('rcCard').classList.toggle('hidden',!c||role!=='parent');$('rcShow').textContent=c?fmtCode(c):''}
@@ -884,7 +1178,7 @@ function logout(){role=null;if(cfg.session){delete cfg.session;Store.saveCfg()}r
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
-  if(D.who){who=D.who;$('wS').classList.toggle('on',who==='student');$('wP').classList.toggle('on',who==='parent');$('lPin').focus();return}
+  if(D.who){who=D.who;renderGate();$('lPin').focus();return}
   if(b.id==='gMerge')return mergeCode($('gIn'));
   if(b.id==='fgBtn'){$('fgBox').classList.toggle('hidden');return}
   if(b.id==='fgWipe'){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload();return}
@@ -894,9 +1188,11 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   if(D.tab){if(D.tab==='learn'&&cfg.ui.tab==='learn'&&!QZ)cfg.ui.lsub=null;cfg.ui.tab=D.tab;saveUI();scrollTo(0,0)}
   else if(b.id==='tdGo'){if(S.quiz.some(r=>r.mode==='daily'&&r.d===dk())){cfg.ui.tab='learn';saveUI()}else daily()}
   else if(D.exdel)act('exDel',{eid:D.exdel});
-  else if(D.lsub){cfg.ui.lsub=D.lsub;cfg.ui.llv=cfg.ui.llv||{};saveUI();scrollTo(0,0)}
+  else if(D.lsub){cfg.ui.lsub=D.lsub;cfg.ui.lnote=null;saveUI();scrollTo(0,0)}
   else if(b.id==='lBack'){cfg.ui.lsub=null;saveUI()}
-  else if(D.prac)practise(D.prac,$('lsLv').value);
+  else if(D.note){cfg.ui.lnote=D.note;saveUI();scrollTo(0,0)}
+  else if(b.id==='noteClose'){cfg.ui.lnote=null;saveUI()}
+  else if(D.prac){cfg.ui.lnote=null;practise(D.prac,$('lsLv').value)}
   else if(b.id==='mockGo')mock(cfg.ui.lsub,$('lsLv').value,+$('lsSec').value);
   else if(b.id==='revGo')review(cfg.ui.lsub);
   else if(b.id==='lMistGo')review(null);
@@ -908,7 +1204,9 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   else if(b.id==='qDone'){QZ=null;render();renderRun()}
   else if(b.id==='qAgain'&&QZ){const z=QZ;if(z.mode==='review')review(z.sub==='Mixed'?null:z.sub);else if(z.mode==='daily')startQuiz('daily','Mixed',null,'Daily challenge',z.items.map(it=>itemsFor(it.t,1)[0]).filter(Boolean));else if(z.mode==='mock')startQuiz('mock',z.sub,z.lv,z.title,mixed([...new Set(z.items.map(it=>it.t))],z.items.length));else practise(z.items[0].t,z.lv)}
   else if(b.id==='logout')logout();
-  else if(D.start){cfg.ui.timer={end:Date.now()+D.start*6e4,m:+D.start,s:$('fSubj').value,by:role};saveUI()}
+  else if(D.kview&&P){cfg.ui.kid=D.kview;cfg.ui.lsub=null;cfg.ui.lnote=null;QZ=null;saveUI()}
+  else if(D.kdel&&P){if(!D.sure){D.sure=1;b.textContent='Tap again';return}act('kidDel',{kid:D.kdel})}
+  else if(D.start){cfg.ui.timer={end:Date.now()+D.start*6e4,m:+D.start,s:$('fSubj').value,by:role==='parent'?'parent':'student',kid:cur};saveUI()}
   else if(b.id==='fStop'){cfg.ui.timer=null;toast('Session stopped. Try a 15-min one next.');saveUI()}
   else if(D.done)act('hwDone',{hid:D.done});
   else if(D.del)act('hwDel',{hid:D.del});
@@ -933,16 +1231,22 @@ onSub('newF',async()=>{const name=$('nName').value.trim(),pp=$('nPP').value,sp=$
   if(!name)return toast("Enter the student's name.");if(!pinOk(pp)||!pinOk(sp))return toast('PINs must be 4 to 6 digits.');if(pp===sp)return toast('Use different PINs for parent and student.');
   cfg={fam:newCode(),slot:$('nSlot').value,ui:{tab:'parent',p:0,timer:null}};await makeKey();
   const st=async r=>pinHash(r,r==='parent'?pp:sp);
-  role='parent';const rc=newRc();cfg.ui.newRc=rc;await act('setup',{name,pp:await st('parent'),sp:await st('student'),rc:await rcHash(rc)});
+  role='parent';const rc=newRc();cfg.ui.newRc=rc;await act('setup',{name,pp:await st('parent'),sp:await st('student'),rc:await rcHash(rc),stage:$('nStage').value,year:+$('nYear').value});
   const old=lsGet('levelup-base',null);if(old&&old.st&&old.st.xp)await act('restore',{state:Object.assign(clone(old.st),{pin:undefined})});
   await begin();toast('Family created. Join other devices with the family code in Admin.')});
 onSub('joinF',async()=>{const c=$('jCode').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length!==16)return toast('The family code has 16 letters and numbers.');
   cfg={fam:c,slot:$('jSlot').value,ui:{tab:'today',p:0,timer:null}};await begin();toast('Joining… keep the first device open.')});
-onSub('loginF',async()=>{const v=$('lPin').value;$('lPin').value='';if(!S.pins[who])return;
-  if(await pinHash(who,v)!==S.pins[who])return toast('Wrong PIN');
-  role=who;cfg.ui.tab=role==='parent'?'parent':'today';if(role==='student')cfg.session='student';await Store.saveCfg();render()});
+onSub('loginF',async()=>{const v=$('lPin').value;$('lPin').value='';const want=who==='parent'?G.pins.parent:(G.kids[who]||{}).pin;if(!want)return;
+  if(await pinHash(who==='parent'?'parent':kidRole(who),v)!==want)return toast('Wrong PIN');
+  role=who;cfg.ui.tab=role==='parent'?'parent':'today';cfg.ui.lsub=null;QZ=null;if(role!=='parent')cfg.session=role;await Store.saveCfg();render()});
 onSub('rcF',async()=>{const c=$('rcIn').value,v=$('rcPin').value;if(!pinOk(v))return toast('The new PIN must be 4 to 6 digits.');if(c.replace(/[^A-Za-z0-9]/g,'').length!==12)return toast('The recovery code has 12 letters and numbers.');
-  $('rcPin').value='';await act('recover',{rc:await rcHash(c),h:await pinHash('parent',v)},null);if(S.pins.parent===await pinHash('parent',v)){$('rcIn').value='';$('fgBox').classList.add('hidden');who='parent';$('wP').classList.add('on');$('wS').classList.remove('on')}});
+  $('rcPin').value='';await act('recover',{rc:await rcHash(c),h:await pinHash('parent',v)},null);if(G.pins.parent===await pinHash('parent',v)){$('rcIn').value='';$('fgBox').classList.add('hidden');who='parent';renderGate()}});
+onSub('kaF',async()=>{if(role!=='parent')return;const name=$('kaName').value.trim(),p=$('kaPin').value;if(!name)return toast("Enter the student's name.");if(!pinOk(p))return toast('PIN must be 4 to 6 digits.');
+  const kid='k'+uid().replace(/[^a-z0-9]/g,'');$('kaName').value='';$('kaPin').value='';await act('kidAdd',{kid,name,h:await pinHash(kidRole(kid),p),stage:$('kaStage').value,year:+$('kaYear').value});cfg.ui.kid=kid;saveUI()});
+const yrFill=(sel,stage)=>{$(sel).innerHTML=Array.from({length:stage==='P'?6:4},(_,i)=>`<option value="${i+1}">${stage==='P'?'Primary':'Sec'} ${i+1}</option>`).join('')};
+yrFill('nYear','S');$('nYear').value='3';yrFill('kaYear','P');
+$('nStage').addEventListener('change',e=>yrFill('nYear',e.target.value));$('kaStage').addEventListener('change',e=>yrFill('kaYear',e.target.value));
+$('kidSel').addEventListener('change',e=>{cfg.ui.kid=e.target.value;cfg.ui.lsub=null;cfg.ui.lnote=null;QZ=null;saveUI()});
 onSub('winF',()=>{const t=$('winT').value.trim();if(!t)return;$('winT').value='';act('win',{t})});
 onSub('lsF',()=>{const t=$('lsT').value.trim();if(!t)return toast('Write one thing you learned first.');$('lsT').value='';act('lesson',{s:$('lsSubj').value,t,f:+$('lsFocus').value})});
 onSub('hwF',()=>{const t=$('hwT').value.trim();if(!t)return;$('hwT').value='';act('hwAdd',{hid:uid(),s:$('hwSubj').value,t,due:$('hwDue').value||dk()})});
@@ -955,19 +1259,19 @@ onSub('qF',()=>{const q=$('qQ').value.trim(),c=$('qC').value.trim(),w=['qW1','qW
   const e=$('qE').value.trim();['qQ','qC','qW1','qW2','qW3','qE'].forEach(i=>$(i).value='');act('qAdd',{qid:uid(),s:cfg.ui.lsub,q,c,w,e})});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='qNum'){e.preventDefault();const b=$('qCheck')||$('qNext');if(b)b.click()}});
 document.addEventListener('change',e=>{const t=e.target;if(role!=='parent')return;if(t.dataset&&t.dataset.lvsub)act('lv',{sub:t.dataset.lvsub,v:t.value});else if(t.id==='secSel')act('sec',{v:+t.value})});
-$('lsLv').addEventListener('change',e=>{cfg.ui.llv=cfg.ui.llv||{};cfg.ui.llv[cfg.ui.lsub]=e.target.value;saveUI()});
-$('lsSec').addEventListener('change',e=>{cfg.ui.lsec=+e.target.value;saveUI()});
+$('lsLv').addEventListener('change',e=>{cfg.ui.llv=cfg.ui.llv||{};cfg.ui.llv[cur+cfg.ui.lsub]=e.target.value;saveUI()});
+$('lsSec').addEventListener('change',e=>{cfg.ui.lsec=typeof cfg.ui.lsec==='object'&&cfg.ui.lsec?cfg.ui.lsec:{};cfg.ui.lsec[cur]=+e.target.value;saveUI()});
 onSub('noteF',()=>{if(role!=='parent')return;const t=$('noteT').value.trim(),x=+$('noteX').value;if(!t)return;$('noteT').value='';act('note',{t,x})});
 onSub('nmF',()=>{if(role!=='parent')return;const v=$('nmIn').value.trim();if(v)act('name',{v})});
-onSub('pinF',async()=>{if(role!=='parent')return;const v=$('pinNew').value;$('pinNew').value='';if(!pinOk(v))return toast('Use 4 to 6 digits.');const r=$('pinRole').value;act('pin',{role:r,h:await pinHash(r,v)})});
+onSub('pinF',async()=>{if(role!=='parent')return;const v=$('pinNew').value;$('pinNew').value='';if(!pinOk(v))return toast('Use 4 to 6 digits.');const r=$('pinRole').value;act('pin',{role:r,h:await pinHash(r==='parent'?'parent':kidRole(cur),v)})});
 $('capSel').addEventListener('change',e=>{if(role==='parent')act('cap',{v:+e.target.value})});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTimer();if(peer){try{if(peer.disconnected)peer.reconnect()}catch(e){}dialAll()}}});
 
 (async()=>{
   if(!window.crypto||!crypto.subtle){$('gWelcome').classList.remove('hidden');toast('Open this app from an https:// address.');return}
   await Store.init();cfg=await Store.cfg();cfg.ui=Object.assign({tab:'today',p:0,timer:null},cfg.ui||{});
-  A=(await Store.acts()).filter(a=>a&&a.id&&R[a.type]).sort(cmp);have=new Set(A.map(a=>a.id));
-  if(cfg.fam){await makeKey();replay();if(cfg.session==='student'&&S.pins.student)role='student';startPeer()}
+  A=(await Store.acts()).filter(a=>a&&a.id&&known(a.type)).sort(cmp);have=new Set(A.map(a=>a.id));
+  if(cfg.fam){await makeKey();replay();const s=cfg.session==='student'?'k1':cfg.session;if(s&&G.kids[s]&&G.kids[s].pin){role=s;pickS()}startPeer()}
   render();
 })();
 }
