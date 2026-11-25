@@ -106,6 +106,22 @@ details.card summary{cursor:pointer;min-height:32px}
 .hud select{width:auto;min-height:36px;background:rgba(255,255,255,.16);color:#fff;border:0;font-size:14px;padding:4px 10px}.hud select option{color:#13241d}
 ul.notes{margin:4px 0 14px;padding-left:20px}ul.notes li{margin:6px 0;line-height:1.5}
 details summary{cursor:pointer;min-height:32px}
+.hero{background:var(--soft);border:0;padding:20px}.hero h2{font-size:26px}
+.kick{font:700 13px Outfit,sans-serif;color:var(--acc);margin:10px 0 0}
+.dots{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;font-size:12px;color:var(--mute)}
+.dday i{display:block;width:26px;height:26px;margin:0 auto 4px;border-radius:50%;border:2px solid var(--line)}.dday.on i{background:var(--hi);border-color:var(--hi)}.dday.now i{box-shadow:0 0 0 3px var(--soft),0 0 0 5px var(--acc)}
+.badges{display:flex;flex-wrap:wrap;gap:10px}.bdg{display:flex;flex-direction:column;align-items:center;gap:4px;width:84px;text-align:center;font-size:12px}
+.medal{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffe08a,#f2a541 70%);color:#5a3b00;font:800 18px Outfit,sans-serif;box-shadow:inset 0 -3px 0 rgba(0,0,0,.15);flex:none}
+.medal.off{background:var(--soft);color:var(--mute);box-shadow:none;border:2px dashed var(--line)}.medal.big{width:96px;height:96px;font-size:40px;margin:0 auto 12px}
+.nb{display:flex;gap:10px;align-items:center;padding:8px 0}
+.celeb{position:fixed;inset:0;z-index:30;background:rgba(10,20,15,.55);display:grid;place-items:center;padding:20px}
+.cbox{background:var(--card);border-radius:22px;padding:28px 24px;text-align:center;max-width:360px;width:100%;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.card.kid.sel{border:2px solid var(--hi)}
+body:not(.student) .so{display:none!important}
+.combo{font:700 14px Outfit,sans-serif;color:var(--acc)}
+.stars{font-size:34px;letter-spacing:4px;color:#f2a541}.stars .off{color:var(--line)}
+.mlab{font-size:12px;font-weight:700;padding:2px 8px;border-radius:99px;background:var(--soft)}.mlab.m3{background:var(--hi);color:light-dark(#fff,#08140f)}.mlab.m0{background:transparent;border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -127,17 +143,23 @@ details summary{cursor:pointer;min-height:32px}
 <nav id="nav"></nav>
 <main>
   <section id="today">
+    <div id="famOv" class="po"></div>
     <div id="notes"></div>
-    <h2>Today's missions</h2>
-    <div class="card" id="missions"></div>
+    <div class="card hero" id="nextStep"></div>
+    <div class="grid">
+      <div class="card"><h3>Today's missions <span class="tag" id="misCount"></span></h3><div id="missions"></div></div>
+      <div class="card"><h3>This week</h3><div id="weekBox"></div></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h3>Badges</h3><div id="badgeBox"></div></div>
     <div class="grid">
       <div class="card"><h3>Daily challenge</h3><p class="muted" id="tdChal"></p><button id="tdGo">Start 5 questions</button></div>
       <div class="card"><h3>Upcoming tests</h3><ul class="list" id="exList"></ul>
-        <form id="exF" class="row" style="margin-top:8px"><input id="exN" maxlength="40" placeholder="e.g. Math WA1"><input id="exD" type="date"><button class="ghost">Add</button></form></div>
+        <form id="exF" style="margin-top:8px"><div class="row"><input id="exN" maxlength="40" placeholder="e.g. Math WA1"><select id="exS"></select></div><div class="row" style="margin-top:6px"><input id="exD" type="date"><button class="ghost">Add test</button></div></form></div>
       <div class="card"><h3>Due soon</h3><ul class="list" id="dueSoon"></ul></div>
       <div class="card"><h3>Log a win</h3><p class="muted">Anything you did well today, big or small. Proud moments count.</p>
         <form id="winF" class="row"><input id="winT" placeholder="e.g. Asked teacher a question in Math" maxlength="120"><button>Add +5</button></form>
         <ul class="list" id="winList" style="margin-top:8px"></ul></div>
+      <div class="card so"><h3>Send progress to parents</h3><p class="muted">Live sync works while both devices have Level Up open. If your parents can't see your latest progress, send them an update. Family ID …<b id="shareFam"></b></p><button class="ghost" id="shareUp">Send update</button></div>
     </div>
   </section>
 
@@ -183,6 +205,7 @@ details summary{cursor:pointer;min-height:32px}
   <section id="learn">
     <div id="lHome">
       <h2>Learn &amp; practise</h2>
+      <div id="lCont"></div>
       <div class="grid" id="lSubs"></div>
       <div class="card" style="margin-top:14px"><h3>Mistake book</h3><p class="muted" id="lMistTxt"></p><button class="ghost" id="lMistGo">Review my mistakes</button></div>
       <p class="muted">All questions are original, written to follow the MOE syllabus topics for each subject level. They are not copied from any textbook. Add questions from your own workbook under each subject.</p>
@@ -248,6 +271,7 @@ details summary{cursor:pointer;min-height:32px}
     <div class="card"><h3>Family sync</h3>
       <p><span class="dot" id="pDot"></span><span id="pLive"></span></p>
       <ul class="list" id="pPeers"></ul>
+      <p>Family ID: <b class="num">…<span id="pFam"></span></b> <span class="muted">(must match on every device)</span></p>
       <label for="slotSel">This device is</label><select id="slotSel"></select>
       <p class="muted">Every device needs its own slot. Give each child's device a different student slot (Student device 1, 2, 3).</p>
       <div class="row" style="margin-top:8px"><button class="ghost" id="syncNow">Reconnect sync now</button></div>
@@ -308,6 +332,8 @@ details summary{cursor:pointer;min-height:32px}
       <div class="row" style="margin-top:8px"><button class="ghost" id="gMerge">Merge</button><button class="ghost" id="gLeave">Start over</button></div></div>
   </div>
 </div></div>
+<div id="celeb" class="celeb hidden" role="dialog" aria-live="polite"><div class="cbox"><div class="medal big" id="celebIcon"></div><h2 id="celebT"></h2><p id="celebD" class="muted"></p><button id="celebOk">Awesome!</button></div></div>
+<div id="cpBox" class="celeb hidden" role="dialog"><div class="cbox"><h3>Copy this update</h3><p class="muted">Press and hold in the box, choose Select All, then Copy. Paste it into WhatsApp to your parent.</p><textarea id="cpTxt" rows="5" readonly></textarea><button id="cpClose" style="margin-top:10px">Done</button></div></div>
 <div id="toast" role="status"></div>
 <script>
 
@@ -916,9 +942,9 @@ let cfg={},A=[],have=new Set(),G=defG(),S=def(),cur=null,role=null,peerTxt='',pe
 const cmp=(a,b)=>(a.ts-b.ts)||(a.id<b.id?-1:a.id>b.id?1:0);
 const dayOf=(S,d)=>S.log[d]||(S.log[d]={f:0,cn:0,hw:0,ls:0,bonus:0,g:0});
 const usedOnS=(S,d)=>S.used.filter(u=>u.d===d).reduce((a,u)=>a+u.m,0);
-function gainS(S,d,x,why,mins=0){const b=Math.floor(S.xp/LV);S.xp+=x;S.coins+=x;S.bank+=mins;const L=dayOf(S,d);if(mins)L.g=(L.g||0)+mins;
+function gainS(S,d,x,why,mins=0){const b=Math.floor(S.xp/LV);S.xp+=x;S.coins+=x;S.bank+=mins;const L=dayOf(S,d);L.xp=(L.xp||0)+x;if(mins)L.g=(L.g||0)+mins;
   let m='+'+x+' XP · '+why+(mins?' · +'+mins+' min game time':'');
-  if(!L.bonus&&L.f&&L.cn&&L.hw&&L.ls){L.bonus=1;S.xp+=50;S.coins+=50;m+=' · All missions done! +50 bonus'}
+  if(!L.bonus&&L.f&&L.cn&&L.hw&&L.ls){L.bonus=1;S.xp+=50;S.coins+=50;L.xp+=50;m+=' · All missions done! +50 bonus'}
   if(Math.floor(S.xp/LV)>b)m='LEVEL UP! You reached level '+(Math.floor(S.xp/LV)+1)+'. '+m;return m}
 function addKid(G,id,name,pin,stage,year,lv){const k=defKid(stage==='P'?'P':'S');k.id=id;k.name=name;k.pin=pin;if(year)k.sec=Math.min(k.stage==='P'?6:4,Math.max(1,+year));if(lv)Object.assign(k.lv,lv);G.kids[id]=k;G.order.push(id)}
 const RG={
@@ -955,7 +981,7 @@ const R={
   lv:(S,a)=>{if(!LVN[a.v])return '';S.lv[a.sub]=a.v;return a.sub+' level set to '+a.v},
   sec:(S,a)=>{S.sec=Math.min(S.stage==='P'?6:4,Math.max(1,+a.v||1));return 'School year set to '+(S.stage==='P'?'P':'Sec ')+S.sec},
   qAdd:(S,a)=>{S.myq.push({id:a.qid,s:a.s,q:a.q,c:a.c,w:a.w,e:a.e});return 'Question saved to '+a.s+' → My own questions'},
-  exAdd:(S,a)=>{S.exams.push({id:a.eid,n:a.n,dt:a.dt});return 'Test added'},
+  exAdd:(S,a)=>{S.exams.push({id:a.eid,n:a.n,dt:a.dt,s:a.s||''});return 'Test added'},
   exDel:(S,a)=>{S.exams=S.exams.filter(x=>x.id!==a.eid);return ''},
   quiz:(S,a)=>{S.quiz.push({d:a.d,mode:a.mode,sub:a.sub,lv:a.lv,title:a.title,c:a.c,n:a.n,byT:a.byT,secs:a.secs});if(S.quiz.length>400)S.quiz.splice(0,S.quiz.length-400);
     for(const w of a.wrong||[])if(!S.mist.some(m=>m.id===w.id))S.mist.push(w);if(S.mist.length>150)S.mist.splice(0,S.mist.length-150);
@@ -987,14 +1013,15 @@ async function merge(list,from){let added=[];
 let peer=null,pre='',conns={};
 const loadPeer=()=>new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src=PEERJS;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
 function setPeer(t,ok=false){peerTxt=t;peerOk=ok;renderSync()}
-function renderParentPeers(){$('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot&&conns[k]&&conns[k].open).map(k=>`<li><span class="dot ok"></span><span class="txt">${SLOTS[k]}</span><span class="tag">Connected</span></li>`).join('')||'<li class="muted">No other device connected right now. Devices connect while Level Up is open on them.</li>'}
+function renderParentPeers(){const sn=cfg.seen||{};$('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot&&((conns[k]&&conns[k].open)||sn[k])).map(k=>{const on=conns[k]&&conns[k].open;return `<li><span class="dot ${on?'ok':''}"></span><span class="txt">${SLOTS[k]}</span><span class="tag">${on?'Connected now':'Last synced '+ago(sn[k])}</span></li>`}).join('')||'<li class="muted">This device has never synced with another device. Open Level Up on both devices at the same time, and check both show the same Family ID.</li>'}
 function liveNames(){return Object.keys(conns).filter(k=>conns[k].open).map(k=>SLOTS[k]||k)}
 function updPeer(){if(role==='parent'&&$('pPeers'))renderParentPeers();const n=liveNames();n.length?setPeer('Live · connected to '+n.join(', '),true):setPeer(peer&&peer.open?'Online · waiting for other devices to open Level Up':'Connecting…')}
 async function send(c,obj){try{c.send(await seal(te.encode(JSON.stringify(obj))))}catch(e){}}
 function broadcast(list){for(const c of Object.values(conns))if(c.open)send(c,{t:'acts',acts:list})}
 function wire(c){const slot=c.peer.slice(pre.length);
-  c.on('open',()=>{conns[slot]=c;updPeer();send(c,{t:'ids',ids:[...have]})});
-  c.on('data',async d=>{let m;try{m=JSON.parse(td.decode(await unseal(String(d))))}catch(e){return}
+  const seen=()=>{cfg.seen=cfg.seen||{};cfg.seen[slot]=Date.now()};
+  c.on('open',()=>{conns[slot]=c;seen();Store.saveCfg();updPeer();send(c,{t:'ids',ids:[...have]})});
+  c.on('data',async d=>{let m;try{m=JSON.parse(td.decode(await unseal(String(d))))}catch(e){return}seen();
     if(m.t==='ids'&&Array.isArray(m.ids)){const theirs=new Set(m.ids),miss=A.filter(a=>!theirs.has(a.id));if(miss.length)send(c,{t:'acts',acts:miss})}
     else if(m.t==='acts'&&Array.isArray(m.acts))merge(m.acts,SLOTS[slot]||'another device')});
   c.on('close',()=>{if(conns[slot]===c)delete conns[slot];updPeer()});
@@ -1023,7 +1050,7 @@ async function startPeer(){
 
 /* ---------- manual sync codes ---------- */
 async function syncCode(){let u=te.encode(JSON.stringify(A)),z=!!window.CompressionStream;if(z)u=await pipe(u,new CompressionStream('gzip'));return (z?'LUz.':'LU1.')+await seal(u)}
-async function readCode(s){s=s.trim().replace(/\s+/g,'');const z=s.startsWith('LUz.');if(!z&&!s.startsWith('LU1.'))throw 0;let u=await unseal(s.slice(4));if(z)u=await pipe(u,new DecompressionStream('gzip'));return JSON.parse(td.decode(u))}
+async function readCode(s){const mt=String(s).replace(/\s+/g,'').match(/LU[z1]\.[A-Za-z0-9+\/=]+/);if(!mt)throw 0;s=mt[0];const z=s.startsWith('LUz.');if(!z&&!s.startsWith('LU1.'))throw 0;let u=await unseal(s.slice(4));if(z)u=await pipe(u,new DecompressionStream('gzip'));return JSON.parse(td.decode(u))}
 async function mergeCode(el){try{const n=await merge(await readCode(el.value));el.value='';toast(n?'Merged '+n+' updates':'Already up to date');render()}catch(e){toast('That sync code is not for this family, or it was cut off.')}}
 
 
@@ -1048,7 +1075,7 @@ const ansText=it=>it.type==='num'?String(+it.ans.toFixed(4)):it.opts[it.c];
 const mmss=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 let QZ=null,qTick=null;
 function startQuiz(mode,sub,lv,title,items){if(!items.length)return toast('No questions here yet. Try another topic or level.');
-  QZ={mode,sub,lv,title,items,i:0,ans:[],start:Date.now(),end:mode==='mock'?Date.now()+items.length*90e3:null,done:false,res:null};
+  QZ={mode,sub,lv,title,items,i:0,ans:[],combo:0,best:0,start:Date.now(),end:mode==='mock'?Date.now()+items.length*90e3:null,done:false,res:null};
   clearInterval(qTick);if(QZ.end)qTick=setInterval(()=>{if(!QZ||QZ.done||!QZ.end)return clearInterval(qTick);const l=QZ.end-Date.now();if(l<=0)finishQuiz();else if($('qClock'))$('qClock').textContent=mmss(l)},1000);
   cfg.ui.tab='learn';render();renderRun();scrollTo(0,0)}
 function practise(k,lv){startQuiz('practice',topicSub(k),lv,topicName(k),itemsFor(k,10))}
@@ -1063,8 +1090,9 @@ function finishQuiz(){const z=QZ;if(!z||z.done)return;if(z.items[z.i]&&z.items[z
   z.res={c,n:z.items.length};act('quiz',{mode:z.mode,sub:z.sub,lv:z.lv,title:z.title,c,n:z.items.length,byT,wrong:wrong.slice(0,20),fix,secs:Math.round((Date.now()-z.start)/1000)});renderRun()}
 function renderRun(){const el=$('lRun'),z=QZ;if(!z){el.innerHTML='';return}
   if(z.done){const p=Math.round(z.res.c/z.res.n*100),msg=p>=80?'Excellent work!':p>=60?'Good effort. Check the ones you missed below.':p>=40?'Getting there. Every mistake you review makes you stronger.':'Tough one, but now you know exactly what to work on.';
-    el.innerHTML=`<div class="card"><h3>${esc(z.title)}</h3><div class="big">${z.res.c}/${z.res.n}</div><p><b>${p}%</b> · ${msg}</p>
-      <div class="row"><button id="qAgain">Try again</button><button class="ghost" id="qDone">Done</button></div></div>
+    const st=p>=90?3:p>=70?2:p>=40?1:0,m=mastery(),sub=z.sub!=='Mixed'?z.sub:null,nx=sub?topicsFor(sub,S.lv[sub]||lvOpts()[0],S.sec).filter(t=>t[0]!==(z.mode==='practice'?z.items[0].t:'')).sort((a,b)=>((m[a[0]]||{p:50}).p)-((m[b[0]]||{p:50}).p))[0]:null;
+    el.innerHTML=`<div class="card" style="text-align:center"><h3>${esc(z.title)}</h3><div class="stars">${[1,2,3].map(i=>`<span class="${i<=st?'':'off'}">★</span>`).join('')}</div><div class="big">${z.res.c}/${z.res.n}</div><p><b>${p}%</b> · ${msg}${z.best>=3?` Best run: ${z.best} in a row.`:''}</p>
+      <div class="row" style="justify-content:center"><button id="qAgain">Try again</button>${nx?`<button class="ghost" data-cont="${esc(nx[0])}|${esc(S.lv[sub]||lvOpts()[0])}">Next: ${esc(nx[2])}</button>`:''}<button class="ghost" id="qDone">Done</button></div></div>
       ${z.items.map((it,i)=>isRight(it,z.ans[i])?'':`<div class="card"><p class="qtext">${esc(it.q)}</p><p class="late">Your answer: ${esc(z.ans[i]===undefined||z.ans[i]===''?'(none)':it.type==='num'?z.ans[i]:it.opts[z.ans[i]])}</p><p><b>Answer: ${esc(ansText(it))}</b></p><p class="muted">${esc(it.e)}</p></div>`).join('')}`;return}
   const it=z.items[z.i],a=z.ans[z.i],fb=z.mode!=='mock'&&a!==undefined,ok=fb&&isRight(it,a),last=z.i===z.items.length-1;
   const optCls=i=>fb?(i===it.c?'right':i===a?'wrong':''):(a===i?'sel':'');
@@ -1073,7 +1101,7 @@ function renderRun(){const el=$('lRun'),z=QZ;if(!z){el.innerHTML='';return}
     <div class="card" style="margin-top:12px"><p class="qtext">${esc(it.q)}</p>
     ${it.type==='mcq'?it.opts.map((o,i)=>`<button class="opt ${optCls(i)}" data-opt="${i}" ${fb?'disabled':''}>${esc(o)}</button>`).join('')
       :`<div class="row"><input id="qNum" inputmode="decimal" autocomplete="off" placeholder="Your answer" value="${a!==undefined?esc(a):''}" ${fb?'disabled':''}>${fb||z.mode==='mock'?'':'<button id="qCheck">Check</button>'}</div>`}
-    ${fb?`<div class="note" style="margin-top:12px"><b>${ok?'Correct!':'Not quite.'}</b>${ok?'':' Answer: '+esc(ansText(it))}<br>${esc(it.e)}</div>`:''}
+    ${fb?`<div class="note" style="margin-top:12px"><b>${ok?pick(['Correct!','Nice one!','Spot on!','Well done!']):'Not quite.'}</b>${ok&&z.combo>=3?` <span class="combo">${z.combo} in a row!</span>`:''}${ok?'':' Answer: '+esc(ansText(it))}<br>${esc(it.e)}</div>`:''}
     <div class="row" style="margin-top:12px">${z.mode==='mock'&&z.i>0?'<button class="ghost" id="qPrev">Back</button>':''}${fb||z.mode==='mock'?`<button id="qNext">${last?'Finish':'Next'}</button>`:''}</div></div>`;
   if(it.type==='num'&&!fb&&$('qNum'))$('qNum').focus()}
 function renderLearn(){const run=!!QZ,sub=!run&&cfg.ui.lsub;$('lRun').classList.toggle('hidden',!run);$('lSub').classList.toggle('hidden',!sub);$('lHome').classList.toggle('hidden',run||!!sub);
@@ -1082,16 +1110,98 @@ function renderLearn(){const run=!!QZ,sub=!run&&cfg.ui.lsub;$('lRun').classList.
     return `<div class="card"><div class="subj" style="border:0;padding:0"><div class="head"><b>${s} <span class="tag">${lv}</span></b><span class="muted">${ks.length?ks.length+' topics':'From P3'}</span></div>
       <div class="bar"><i style="width:${p||0}%"></i></div><p class="muted" style="margin:6px 0 10px">${p==null?'Not started yet':'Mastery '+p+'%'}${last?` · last mock ${Math.round(last.c/last.n*100)}%`:''}</p>
       <button data-lsub="${s}" style="width:100%">Open ${s}</button></div></div>`}).join('');
+  const lastP=[...S.quiz].reverse().find(r=>r.mode==='practice'&&r.byT&&Object.keys(r.byT).length===1);
+  $('lCont').innerHTML=lastP?(()=>{const k=Object.keys(lastP.byT)[0];return TMAP[k]||k.startsWith('my_')?`<div class="card hero"><p class="kick" style="margin:0">Pick up where you left off</p><h3 style="margin:4px 0 10px">${esc(topicName(k))} <span class="tag">${esc(topicSub(k))}</span></h3><p class="muted" style="margin:0 0 10px">Last time: ${lastP.c}/${lastP.n}</p><button data-cont="${esc(k)}|${esc(lastP.lv||S.lv[topicSub(k)]||lvOpts()[0])}">Continue practising</button></div>`:''})():'';
   $('lMistTxt').textContent=S.mist.length?`${S.mist.length} question${S.mist.length>1?'s':''} to review. Get one right to clear it (+5 XP each).`:'No mistakes saved. Questions you get wrong will appear here.';
   if(!sub)return;const base=S.lv[sub]||lvOpts()[0];let L=cfg.ui.llv&&cfg.ui.llv[cur+sub]||base;if(!lvOpts().includes(L))L=base;let sec=+(cfg.ui.lsec&&cfg.ui.lsec[cur]||S.sec);if(sec>maxYr())sec=S.sec;
   if($('lsLv').dataset.st!==S.stage){$('lsLv').innerHTML=lvOpts().map(g=>`<option>${g}</option>`).join('');$('lsSec').innerHTML=Array.from({length:maxYr()},(_,i)=>`<option value="${i+1}">${yrLabel(i+1)}</option>`).join('');$('lsLv').dataset.st=S.stage}
   $('lsT').textContent=sub;if(document.activeElement!==$('lsLv'))$('lsLv').value=L;if(document.activeElement!==$('lsSec'))$('lsSec').value=String(sec);
   $('lsNote').textContent=LVN[L]>LVN[base]?`Challenge mode: ${L} is above your ${base} level. Correct answers earn 50% more XP.`:LVN[base]<(S.stage==='P'?2:3)?`Your ${sub} level is ${base}. Practise a higher level for bonus XP.`:`Your ${sub} level is ${base}.`;
   const tops=topicsFor(sub,L,sec);
-  $('lsTop').innerHTML=tops.map(t=>{const x=m[t[0]];return `<div class="tp"><div><b>${esc(t[2])}</b> <span class="tag">${t[0].startsWith('my_')?'Own':yrLabel(t[4])}</span><br><span class="muted">${x?'Mastery '+x.p+'%':(GEN[t[0]]?'Unlimited questions':poolFor(t[0]).length+' questions')}</span></div>
+  $('lsTop').innerHTML=tops.map(t=>{const x=m[t[0]];return `<div class="tp"><div><b>${esc(t[2])}</b> <span class="tag">${t[0].startsWith('my_')?'Own':yrLabel(t[4])}</span><br><span class="mlab ${x?(x.p>=80?'m3':x.p>=50?'m2':'m1'):'m0'}">${x?(x.p>=80?'Mastered':x.p>=50?'Getting there':'Learning'):'New'}</span> <span class="muted">${x?x.p+'% · ':''}${GEN[t[0]]?'unlimited questions':poolFor(t[0]).length+' questions'}</span></div>
     <span class="row" style="flex-wrap:nowrap;gap:6px">${NOTES[t[0]]?`<button class="ghost sm" data-note="${esc(t[0])}">Notes</button>`:''}<button class="sm" data-prac="${esc(t[0])}">Practise</button></span><div class="bar"><i style="width:${x?x.p:0}%"></i></div></div>`}).join('')||`<p class="muted">${sub==='Science'&&S.stage==='P'?'Primary Science starts in P3.':'No topics for this level and year.'}</p>`;
   const nk=cfg.ui.lnote;$('lNote').classList.toggle('hidden',!(nk&&NOTES[nk]));if(nk&&NOTES[nk])$('lNote').innerHTML=`<h3>${esc(topicName(nk))} · notes</h3><ul class="notes">${NOTES[nk].map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="row"><button data-prac="${esc(nk)}">Practise this topic</button><button class="ghost" id="noteClose">Close</button></div>`;
   $('lsHist').innerHTML=S.quiz.filter(r=>r.sub===sub).slice(-6).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)}</span></span><b class="num">${r.c}/${r.n}</b></li>`).join('')||'<li class="muted">No results yet.</li>'}
+
+
+/* ---------- Today page, family dashboard, badges ---------- */
+const BADGES=[
+ ['q1','First quiz','Finish your first practice quiz',S=>[S.quiz.length,1]],
+ ['m4','Mission complete','Finish all four daily missions in one day',S=>[Object.values(S.log).filter(l=>l.bonus).length,1]],
+ ['st3','3-day streak','Be active three days in a row',S=>[bestStreak(S),3]],
+ ['hw5','On time ×5','Finish 5 homework tasks on or before the due date',S=>[S.hw.filter(h=>h.done&&h.done<=h.due).length,5]],
+ ['f5','Focus ×5','Complete 5 focus sessions',S=>[Object.values(S.log).reduce((a,l)=>a+(l.f||0),0),5]],
+ ['pf','Perfect score','Get every question right in a quiz of 5 or more',S=>[S.quiz.some(r=>r.n>=5&&r.c===r.n)?1:0,1]],
+ ['q10','Quiz regular','Finish 10 quizzes',S=>[S.quiz.length,10]],
+ ['st7','7-day streak','Be active seven days in a row',S=>[bestStreak(S),7]],
+ ['cn','华语 speaker','Speak Chinese for 300 minutes in total',S=>[S.cnlog.reduce((a,c)=>a+c.m,0),300]],
+ ['mk','Mock master','Score 80% or more in a mock test',S=>[S.quiz.some(r=>r.mode==='mock'&&r.c/r.n>=.8)?1:0,1]],
+ ['rv','Mistake fixer','Do 5 mistake reviews',S=>[S.quiz.filter(r=>r.mode==='review').length,5]],
+ ['lv5','Level 5','Reach level 5',S=>[Math.floor(S.xp/LV)+1,5]],
+ ['hw20','On time ×20','Finish 20 homework tasks on time',S=>[S.hw.filter(h=>h.done&&h.done<=h.due).length,20]],
+ ['q50','Quiz champion','Finish 50 quizzes',S=>[S.quiz.length,50]],
+ ['st30','30-day streak','Be active thirty days in a row',S=>[bestStreak(S),30]],
+ ['lv10','Level 10','Reach level 10',S=>[Math.floor(S.xp/LV)+1,10]]];
+const activeDay=l=>l&&(l.f||l.cn||l.hw||l.ls||l.qz);
+function bestStreak(S){const ks=Object.keys(S.log).filter(k=>activeDay(S.log[k])).sort();let best=0,run=0,prev=null;
+  for(const k of ks){const d=new Date(k+'T00:00');run=prev&&(d-prev)/864e5===1?run+1:1;best=Math.max(best,run);prev=d}return best}
+const badgeState=S=>BADGES.map(([id,n,d,f])=>{const [v,t]=f(S);return {id,n,d,v:Math.min(v,t),t,ok:v>=t}});
+const weekKeys=()=>{const t=new Date(dk()+'T00:00'),dow=(t.getDay()+6)%7;return [...Array(7)].map((_,i)=>dk(new Date(t.getTime()+(i-dow)*864e5)))};
+const weekGoal=()=>S.stage==='P'?300:400;
+const lastUpdate=k=>{let m=0;for(const a of A)if((a.kid||(RG[a.type]?null:'k1'))===k&&a.ts>m)m=a.ts;return m};
+const ago=ts=>{if(!ts)return 'never';const m=Math.round((Date.now()-ts)/6e4);if(m<2)return 'just now';if(m<60)return m+' min ago';const h=Math.round(m/60);if(h<24)return h+' h ago';const d=Math.round(h/24);return d+' day'+(d>1?'s':'')+' ago'};
+const famId=()=>cfg.fam?cfg.fam.slice(-4):'';
+function nextStep(){const t=dk(),todo=S.hw.filter(h=>!h.done).sort((a,b)=>String(a.due).localeCompare(b.due)),d=day();
+  const od=todo.filter(h=>h.due<t);if(od.length)return ['Finish overdue homework',`${od[0].s}: ${od[0].t}`,'Open homework','data-tab="homework"'];
+  const soon=todo.find(h=>h.due<=dk(new Date(Date.now()+864e5)));if(soon)return ['Homework due '+(soon.due===t?'today':'tomorrow'),`${soon.s}: ${soon.t}`,'Open homework','data-tab="homework"'];
+  if(!S.quiz.some(r=>r.mode==='daily'&&r.d===t))return ["Today's daily challenge",'5 quick questions picked from your weakest topics. +30 XP bonus.','Start challenge','data-ns="daily"'];
+  const ex=S.exams.filter(x=>x.dt>=t&&x.s).sort((a,b)=>a.dt.localeCompare(b.dt))[0];
+  if(ex){const n=Math.round((new Date(ex.dt+'T00:00')-new Date(t+'T00:00'))/864e5);if(n<=10&&!S.quiz.some(r=>r.mode==='mock'&&r.sub===ex.s&&r.d===t))return ['Revise for '+ex.n,`${n===0?'Today':n===1?'Tomorrow':'In '+n+' days'}. A ${ex.s} mock test is the best practice.`,'Start mock test',`data-mocksub="${esc(ex.s)}"`]}
+  const m=mastery(),weak=[];for(const s of subs())for(const tp of topicsFor(s,S.lv[s]||lvOpts()[0],S.sec))if(m[tp[0]]&&m[tp[0]].p<60)weak.push([m[tp[0]].p,tp]);
+  if(weak.length){weak.sort((a,b)=>a[0]-b[0]);const tp=weak[0][1];return ['Level up a weak topic',`${tp[1]}: ${tp[2]} is at ${weak[0][0]}%. Ten questions will push it up.`,'Practise now',`data-prac="${esc(tp[0])}" data-lv="${esc(S.lv[tp[1]]||lvOpts()[0])}"`]}
+  if(!d.f)return ['Do a focus session','25 minutes, phone face-down. Earns 15 minutes of game time.','Start focus','data-tab="focus"'];
+  if(!d.cn)return ['Speak some 华语','10 minutes of Chinese with family completes a mission.','Open 华文','data-tab="chinese"'];
+  if(!d.ls)return ['One thing you learned','Write one thing from a lesson today.','Write it','data-tab="focus"'];
+  return ['All done for today!','Great work. Log a win, or practise a topic for extra XP.','Go to Learn','data-tab="learn"']}
+function renderToday(){const d=day(),t=dk(),h=new Date().getHours(),hi=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
+  const M=[[d.hw,'Finish one homework task','+30','homework'],[d.f,'Do one focus session','+40','focus'],[d.cn,'Speak Chinese for 10 minutes','+25','chinese'],[d.ls,'Write one thing you learned in class','+10','focus']],done=M.filter(x=>x[0]).length;
+  const [nt,nd,nb,na]=nextStep();
+  $('nextStep').innerHTML=`<p class="muted" style="margin:0">${role==='parent'?'Viewing '+esc(S.name):hi+', '+esc(S.name||'')}</p><p class="kick">Your next step</p><h2 style="margin:2px 0 6px">${esc(nt)}</h2><p style="margin:0 0 12px">${esc(nd)}</p><button ${na}>${esc(nb)}</button>`;
+  $('misCount').textContent=done+'/4';
+  $('missions').innerHTML=`<div class="bar" style="margin-bottom:6px"><i style="width:${done*25}%"></i></div>`+M.map(([ok,tx,x,tab])=>`<div class="mission ${ok?'done':''}"><div class="tick">${ok?'✓':''}</div><div class="txt">${tx}</div>${ok?'':`<button class="ghost sm" data-tab="${tab}">Go</button>`}<span class="xp">${x}</span></div>`).join('')+`<p class="muted" style="margin:10px 0 0">${d.bonus?'All four done today. Nice work!':'Do all four today for +50 bonus XP.'}</p>`;
+  const wk=weekKeys(),wxp=wk.reduce((a,k)=>a+((S.log[k]||{}).xp||0),0),goal=weekGoal(),names=['M','T','W','T','F','S','S'];
+  $('weekBox').innerHTML=`<p style="margin:0"><b class="num" style="font-size:30px">${wxp}</b> <span class="muted">/ ${goal} XP goal</span></p><div class="bar" style="margin:6px 0 12px"><i style="width:${Math.min(100,wxp/goal*100)}%"></i></div>
+    <div class="dots">${wk.map((k,i)=>`<span class="dday ${activeDay(S.log[k])?'on':''} ${k===t?'now':''}"><i></i>${names[i]}</span>`).join('')}</div>
+    <p class="muted" style="margin:10px 0 0">Streak ${streak()} day${streak()===1?'':'s'} · best ${bestStreak(S)}${wxp>=goal?' · weekly goal reached!':''}</p>`;
+  const bs=badgeState(S),got=bs.filter(b=>b.ok),next=bs.filter(b=>!b.ok).slice(0,3);
+  $('badgeBox').innerHTML=`<div class="badges">${got.map(b=>`<div class="bdg on" title="${esc(b.d)}"><span class="medal">${esc(b.n[0])}</span><b>${esc(b.n)}</b></div>`).join('')||'<p class="muted" style="margin:0">No badges yet. Your first one is close!</p>'}</div>
+    ${next.length?`<p class="kick" style="margin-top:14px">Next to unlock</p>${next.map(b=>`<div class="nb"><span class="medal off">${esc(b.n[0])}</span><div style="flex:1"><b>${esc(b.n)}</b> <span class="muted">${esc(b.d)}</span><div class="bar" style="height:6px;margin-top:4px"><i style="width:${b.v/b.t*100}%"></i></div></div><span class="muted">${b.v}/${b.t}</span></div>`).join('')}`:''}`;
+  const qzToday=S.quiz.some(r=>r.mode==='daily'&&r.d===t);
+  $('tdChal').textContent=qzToday?'Done today. Come back tomorrow for a new one, or practise more in Learn.':'5 quick questions from your weakest topics. +30 XP bonus.';$('tdGo').textContent=qzToday?'Practise more':'Start 5 questions';
+  if($('exS').dataset.st!==S.stage){$('exS').innerHTML='<option value="">Subject</option>'+subs().map(s=>`<option>${s}</option>`).join('');$('exS').dataset.st=S.stage}
+  const up=S.exams.filter(x=>x.dt>=t).sort((x,y)=>x.dt.localeCompare(y.dt));
+  $('exList').innerHTML=up.map(x=>{const n=Math.round((new Date(x.dt+'T00:00')-new Date(t+'T00:00'))/864e5);return `<li><span class="txt"><b>${esc(x.n)}</b>${x.s?` <span class="tag">${esc(x.s)}</span>`:''}<br><span class="muted">${fmtD(x.dt)} · ${n===0?'today':n===1?'tomorrow':'in '+n+' days'}</span></span>${x.s?`<button class="sm" data-mocksub="${esc(x.s)}">Revise</button>`:''}<button class="ghost sm" data-exdel="${esc(x.id)}" aria-label="Remove">✕</button></li>`}).join('')||'<li class="muted">No tests added. Add your next test so you can plan revision.</li>';
+  $('shareFam').textContent=famId();
+  if(role==='parent')renderFamily();else $('famOv').innerHTML='';
+  celebrate(got)}
+function renderFamily(){const t=dk(),wk=weekKeys();
+  $('famOv').innerHTML=`<h2>Family dashboard</h2><div class="grid">${G.order.map(k=>{const x=G.kids[k],l=x.log[t]||{},m=[l.hw,l.f,l.cn,l.ls].filter(Boolean).length,wxp=wk.reduce((a,d)=>a+((x.log[d]||{}).xp||0),0),
+    wq=x.quiz.filter(r=>r.d>=wk[0]),qn=wq.reduce((a,r)=>a+r.n,0),qc=wq.reduce((a,r)=>a+r.c,0),od=x.hw.filter(h=>!h.done&&h.due<t).length,lu=lastUpdate(k),stale=!lu||Date.now()-lu>864e5;
+    return `<div class="card kid ${k===cur?'sel':''}"><div class="head" style="display:flex;justify-content:space-between;gap:8px"><b style="font-size:18px">${esc(x.name)}</b><span class="tag">${kidYr(x)} · Lv ${Math.floor(x.xp/LV)+1}</span></div>
+      <div class="kpis" style="margin:10px 0"><div class="kpi"><div class="num">${m}/4</div><span>missions today</span></div><div class="kpi"><div class="num">${wxp}</div><span>XP this week</span></div>
+      <div class="kpi"><div class="num">${wq.length}</div><span>quizzes${qn?' · '+Math.round(qc/qn*100)+'%':''}</span></div><div class="kpi ${od?'bad':''}"><div class="num">${od}</div><span>overdue</span></div></div>
+      <p class="${stale?'late':'muted'}" style="margin:0 0 10px">Last update: ${ago(lu)}${stale?' · open Level Up on their device or ask for an update':''}</p>
+      ${k===cur?'<span class="tag">Shown below</span>':`<button class="ghost sm" data-kview="${esc(k)}">Show details</button>`}</div>`}).join('')}</div>
+    <div class="card"><div class="row"><button id="pasteUp">Paste update from a child</button></div><textarea id="ovIn" rows="2" class="hidden" placeholder="Paste the update message here" style="margin-top:8px"></textarea><div class="row hidden" id="ovRow" style="margin-top:8px"><button class="ghost" id="ovMerge">Merge update</button></div>
+      <p class="muted" style="margin:8px 0 0">Family ID …${esc(famId())}. Every device in this family shows the same ID. ${esc(peerTxt||'')}</p></div>`}
+function celebrate(got){if(role==='parent'||!cur)return;cfg.ui.seen=cfg.ui.seen||{};const seen=cfg.ui.seen[cur];const ids=got.map(b=>b.id),lv=Math.floor(S.xp/LV)+1;
+  if(!seen){cfg.ui.seen[cur]={b:ids,lv};Store.saveCfg();return}
+  const nb=got.find(b=>!seen.b.includes(b.id));
+  if(nb){seen.b.push(nb.id);showCeleb(nb.n[0],'Badge unlocked: '+nb.n,nb.d)}else if(lv>seen.lv){showCeleb(String(lv),'Level '+lv+'!',TITLES[Math.min(lv-1,9)]+' rank reached. Keep going!')}
+  seen.lv=Math.max(seen.lv,lv);Store.saveCfg()}
+function showCeleb(icon,t,d){$('celebIcon').textContent=icon;$('celebT').textContent=t;$('celebD').textContent=d;$('celeb').classList.remove('hidden')}
+async function recentCode(){const since=Date.now()-60*864e5;let u=te.encode(JSON.stringify(A.filter(a=>a.ts>=since||RG[a.type]))),z=!!window.CompressionStream;if(z)u=await pipe(u,new CompressionStream('gzip'));return (z?'LUz.':'LU1.')+await seal(u)}
+async function copyOut(txt,msg){try{if(!navigator.clipboard)throw 0;await navigator.clipboard.writeText(txt);toast(msg)}catch(e){$('cpTxt').value=txt;$('cpBox').classList.remove('hidden');try{$('cpTxt').select()}catch(_){}}}
 
 /* ---------- views ---------- */
 const day=()=>S.log[dk()]||{};
@@ -1119,8 +1229,7 @@ function render(){
   $('title').innerHTML=`<b>${TITLES[Math.min(lv-1,9)]}</b> · ${LV-S.xp%LV} XP to level ${lv+1}`;
   document.querySelectorAll('section').forEach(s=>s.classList.toggle('on',s.id===cfg.ui.tab));
   document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===cfg.ui.tab));
-  const d=day(),M=[[d.hw,'Finish one homework task','+30','homework'],[d.f,'Do one focus session','+40','focus'],[d.cn,'Speak Chinese for 10 minutes','+25','chinese'],[d.ls,'Write one thing you learned in class','+10','focus']];
-  $('missions').innerHTML=M.map(([ok,t,x,tab])=>`<div class="mission ${ok?'done':''}"><div class="tick">${ok?'✓':''}</div><div class="txt">${t}</div>${ok?'':`<button class="ghost sm" data-tab="${tab}">Go</button>`}<span class="xp">${x}</span></div>`).join('')+`<p class="muted" style="margin:10px 0 0">${d.bonus?'All four done today. Nice work!':'Do all four today for +50 bonus XP.'}</p>`;
+  renderToday();
   const todo=S.hw.filter(h=>!h.done).sort((a,b)=>String(a.due).localeCompare(b.due)),t=dk();
   const hwLi=h=>`<li><span class="tag">${esc(h.s)}</span><span class="txt">${esc(h.t)}<br><span class="${h.due<t?'late':'muted'}">${h.due<t?'Overdue · ':'Due '}${fmtD(h.due)}</span></span><button class="sm" data-done="${esc(h.id)}">Done</button></li>`;
   $('dueSoon').innerHTML=todo.slice(0,3).map(hwLi).join('')||'<li class="muted">Nothing due. Add homework in the Tasks tab.</li>';
@@ -1138,10 +1247,6 @@ function render(){
   $('capNote').textContent='Earned from focus sessions. Daily limit: '+(S.cap>=9999?'none':S.cap+' min')+', used today: '+usedOnS(S,dk())+' min.';
   $('notes').innerHTML=S.notes.filter(n=>n.d>=wkK).slice(-2).reverse().map(n=>`<div class="note"><b>From your parents</b> · ${fmtD(n.d)}${n.x?` · +${+n.x} XP`:''}<br>${esc(n.t)}</div>`).join('');
   $('rqList').innerHTML=S.redeemed.slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.n)}</span><span class="tag">${r.st==='pending'?'Waiting for parent':r.st==='given'?'Approved':'Declined · refunded'}</span></li>`).join('');
-  const qzToday=S.quiz.some(r=>r.mode==='daily'&&r.d===dk());
-  $('tdChal').textContent=qzToday?'Done today. Come back tomorrow for a new one, or practise more in Learn.':'5 quick questions from your weakest topics. +30 XP bonus.';$('tdGo').textContent=qzToday?'Practise more':'Start 5 questions';
-  const up=S.exams.filter(x=>x.dt>=dk()).sort((x,y)=>x.dt.localeCompare(y.dt));
-  $('exList').innerHTML=up.map(x=>{const n=Math.round((new Date(x.dt+'T00:00')-new Date(dk()+'T00:00'))/864e5);return `<li><span class="txt"><b>${esc(x.n)}</b><br><span class="muted">${fmtD(x.dt)}</span></span><span class="tag">${n===0?'Today':n===1?'Tomorrow':'in '+n+' days'}</span><button class="ghost sm" data-exdel="${esc(x.id)}" aria-label="Remove">✕</button></li>`}).join('')||'<li class="muted">No tests added. Add your next test so you can plan revision.</li>';
   renderLearn();
   renderRc();if(role==='parent')renderParent();renderTimer()}
 const last7=()=>[...Array(7)].map((_,i)=>dk(new Date(Date.now()-(6-i)*864e5)));
@@ -1155,7 +1260,7 @@ function renderParent(){const w=weekStats();
   $('pRw').innerHTML=S.redeemed.filter(r=>r.st==='pending').map(r=>`<li><span class="txt">${esc(r.n)}<br><span class="muted">${+r.c} coins · ${fmtD(r.d)}</span></span><button class="sm" data-give="${esc(r.id)}">Give</button><button class="ghost sm" data-decl="${esc(r.id)}">Decline</button></li>`).join('')||'<li class="muted">No requests waiting.</li>';
   $('pLs').innerHTML=S.lessons.slice(-6).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}<br><span class="muted">${fmtD(l.d)} · focus ${+l.f}/3</span></span></li>`).join('')||'<li class="muted">No reflections yet.</li>';
   if(document.activeElement!==$('slotSel'))$('slotSel').innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}" ${k===cfg.slot?'selected':''}>${v}</option>`).join('');
-  $('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot).map(k=>{const on=conns[k]&&conns[k].open;return on?`<li><span class="dot ok"></span><span class="txt">${SLOTS[k]}</span><span class="tag">Connected</span></li>`:''}).join('')||'<li class="muted">No other device connected right now. Devices connect while Level Up is open on them.</li>';
+  renderParentPeers();$('pFam').textContent=famId();
   const wq=S.quiz.filter(r=>r.d>=w.ks[0]),qn=wq.reduce((a,r)=>a+r.n,0),qc=wq.reduce((a,r)=>a+r.c,0);
   $('pLearn').innerHTML=[[wq.length,'quizzes done',wq.length<3],[qn,'questions answered'],[qn?Math.round(qc/qn*100)+'%':'–','average score',qn&&qc/qn<.5],[S.mist.length,'mistakes to review',S.mist.length>30]].map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
   $('pMock').innerHTML=S.quiz.filter(r=>r.mode==='mock').slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)} · ${Math.round((r.secs||0)/60)} min</span></span><b class="num">${Math.round(r.c/r.n*100)}%</b></li>`).join('')||'<li class="muted">No mock tests yet.</li>';
@@ -1197,8 +1302,15 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   if(b.id==='fgBtn'){$('fgBox').classList.toggle('hidden');return}
   if(b.id==='fgWipe'){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload();return}
   if(b.id==='gLeave'){if(!D.sure){D.sure=1;b.textContent='Tap again to start over';return}await Store.wipe();location.reload();return}
+  if(b.id==='celebOk'){$('celeb').classList.add('hidden');return}
   if(!role)return;
   const P=role==='parent';
+  if(b.id==='shareUp'){const c=await recentCode(),txt='Level Up update from '+(S.name||'student')+'. Open Level Up → Today → Paste update.\n'+c;
+    if(navigator.share){try{await navigator.share({text:txt});return}catch(err){if(err&&err.name==='AbortError')return}}
+    copyOut(txt,'Update copied. Paste it into WhatsApp to your parent.');return}
+  if(b.id==='cpClose'){$('cpBox').classList.add('hidden');return}
+  if(b.id==='pasteUp'&&P){try{if(!navigator.clipboard||!navigator.clipboard.readText)throw 0;const t=await navigator.clipboard.readText();if(/LU[z1]\./.test(t)){$('ovIn').value=t;return mergeCode($('ovIn'))}}catch(err){}$('ovIn').classList.remove('hidden');$('ovRow').classList.remove('hidden');$('ovIn').focus();toast('Paste the update message into the box, then tap Merge.');return}
+  if(b.id==='ovMerge'&&P)return mergeCode($('ovIn'));
   if(D.tab){if(D.tab==='learn'&&cfg.ui.tab==='learn'&&!QZ)cfg.ui.lsub=null;cfg.ui.tab=D.tab;saveUI();scrollTo(0,0)}
   else if(b.id==='tdGo'){if(S.quiz.some(r=>r.mode==='daily'&&r.d===dk())){cfg.ui.tab='learn';saveUI()}else daily()}
   else if(D.exdel)act('exDel',{eid:D.exdel});
@@ -1206,12 +1318,15 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   else if(b.id==='lBack'){cfg.ui.lsub=null;saveUI()}
   else if(D.note){cfg.ui.lnote=D.note;saveUI();scrollTo(0,0)}
   else if(b.id==='noteClose'){cfg.ui.lnote=null;saveUI()}
-  else if(D.prac){cfg.ui.lnote=null;practise(D.prac,$('lsLv').value)}
+  else if(D.prac){cfg.ui.lnote=null;practise(D.prac,D.lv||$('lsLv').value)}
+  else if(D.ns==='daily')daily();
+  else if(D.mocksub)mock(D.mocksub,S.lv[D.mocksub]||lvOpts()[0],S.sec);
+  else if(D.cont){const [k,lv]=D.cont.split('|');practise(k,lv)}
   else if(b.id==='mockGo')mock(cfg.ui.lsub,$('lsLv').value,+$('lsSec').value);
   else if(b.id==='revGo')review(cfg.ui.lsub);
   else if(b.id==='lMistGo')review(null);
-  else if(D.opt&&QZ&&!QZ.done){const z=QZ;if(z.mode!=='mock'&&z.ans[z.i]!==undefined)return;z.ans[z.i]=+D.opt;renderRun()}
-  else if(b.id==='qCheck'&&QZ){const v=$('qNum').value.trim();if(!v)return toast('Type your answer first.');QZ.ans[QZ.i]=v;renderRun()}
+  else if(D.opt&&QZ&&!QZ.done){const z=QZ;if(z.mode!=='mock'&&z.ans[z.i]!==undefined)return;z.ans[z.i]=+D.opt;if(z.mode!=='mock'){z.combo=isRight(z.items[z.i],z.ans[z.i])?z.combo+1:0;z.best=Math.max(z.best,z.combo)}renderRun()}
+  else if(b.id==='qCheck'&&QZ){const v=$('qNum').value.trim();if(!v)return toast('Type your answer first.');QZ.ans[QZ.i]=v;QZ.combo=isRight(QZ.items[QZ.i],v)?QZ.combo+1:0;QZ.best=Math.max(QZ.best,QZ.combo);renderRun()}
   else if(b.id==='qNext'&&QZ){const z=QZ;if(z.items[z.i].type==='num'&&z.mode==='mock')z.ans[z.i]=$('qNum').value.trim();if(z.i>=z.items.length-1)finishQuiz();else{z.i++;renderRun()}scrollTo(0,0)}
   else if(b.id==='qPrev'&&QZ){const z=QZ;if(z.items[z.i].type==='num')z.ans[z.i]=$('qNum').value.trim();z.i--;renderRun()}
   else if(b.id==='qQuit'){if(!D.sure){D.sure=1;b.textContent='Tap again to quit';return}QZ=null;clearInterval(qTick);render();renderRun()}
@@ -1268,7 +1383,7 @@ onSub('hwF',()=>{const t=$('hwT').value.trim();if(!t)return;$('hwT').value='';ac
 onSub('mkF',()=>{const raw=$('mkS').value,v=Math.round(+raw);if(!raw||v<0||v>100)return toast('Enter a score from 0 to 100.');
   const l=$('mkL').value.trim()||'Test';$('mkS').value='';$('mkL').value='';act('mark',{s:$('mkSubj').value,v,l})});
 onSub('rwF',()=>{if(role!=='parent')return;const n=$('rwN').value.trim(),c=Math.round(+$('rwC').value);if(!n||!c)return;$('rwN').value='';$('rwC').value='';act('rwAdd',{n,c})});
-onSub('exF',()=>{const n=$('exN').value.trim(),dt=$('exD').value;if(!n||!dt)return toast('Add a name and a date.');$('exN').value='';$('exD').value='';act('exAdd',{eid:uid(),n,dt})});
+onSub('exF',()=>{const n=$('exN').value.trim(),dt=$('exD').value,s=$('exS').value;if(!n||!dt)return toast('Add a name and a date.');$('exN').value='';$('exD').value='';act('exAdd',{eid:uid(),n,dt,s})});
 onSub('qF',()=>{const q=$('qQ').value.trim(),c=$('qC').value.trim(),w=['qW1','qW2','qW3'].map(i=>$(i).value.trim()).filter(Boolean);
   if(!q||!c||!w.length)return toast('Add the question, the correct answer and at least one wrong answer.');if(w.includes(c))return toast('A wrong answer is the same as the correct one.');
   const e=$('qE').value.trim();['qQ','qC','qW1','qW2','qW3','qE'].forEach(i=>$(i).value='');act('qAdd',{qid:uid(),s:cfg.ui.lsub,q,c,w,e})});
