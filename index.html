@@ -247,7 +247,10 @@ details summary{cursor:pointer;min-height:32px}
 
     <div class="card"><h3>Family sync</h3>
       <p><span class="dot" id="pDot"></span><span id="pLive"></span></p>
-      <p class="muted">This device: <b id="pSlot"></b></p>
+      <ul class="list" id="pPeers"></ul>
+      <label for="slotSel">This device is</label><select id="slotSel"></select>
+      <p class="muted">Every device needs its own slot. Give each child's device a different student slot (Student device 1, 2, 3).</p>
+      <div class="row" style="margin-top:8px"><button class="ghost" id="syncNow">Reconnect sync now</button></div>
       <label>Family code (needed to join another device)</label>
       <p class="code" id="pCode">••••-••••-••••-••••</p><button class="ghost sm" id="codeShow">Show code</button>
       <h3 style="margin-top:18px">Sync without live connection</h3>
@@ -282,7 +285,7 @@ details summary{cursor:pointer;min-height:32px}
       <form id="joinF"><label for="jCode">Family code</label><input id="jCode" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX">
         <label for="jSlot">This device is</label><select id="jSlot"></select>
         <button class="ghost" style="margin-top:12px;width:100%">Join</button></form>
-      <p class="muted">Each device needs its own slot. Keep the first device open while the new one joins.</p></div>
+      <p class="muted">Each device needs its own slot, e.g. Student device 1 for one child and Student device 2 for the other. Keep the first device open while the new one joins.</p></div>
   </div>
   <div id="gLogin" class="hidden">
     <p class="muted" id="gSync"></p>
@@ -868,7 +871,7 @@ const TITLES=['Rookie','Starter','Grinder','Focused','Steady','Sharp','Locked-in
 const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone the best thing that happened at school today.'],['你最喜欢的游戏是什么？为什么？','What is your favourite game, and why?'],['用中文点一次饭菜或饮料。','Order food or a drink in Chinese once today.'],['跟家人说说你明天的计划。','Tell your family your plan for tomorrow.'],['介绍一个你很喜欢的朋友。','Describe a friend you really like.'],['今天的天气怎么样？你喜欢这样的天气吗？','How is the weather today? Do you like it?'],['如果你有一百块钱，你会买什么？','If you had $100, what would you buy?'],['说说你周末做了什么。','Talk about what you did at the weekend.'],['你觉得哪一科最难？为什么？','Which subject do you find hardest, and why?'],['教家人玩你喜欢的游戏，全程用中文。','Teach a family member your favourite game, only in Chinese.'],['说说一部你喜欢的电影或视频。','Talk about a movie or video you like.'],['你长大以后想做什么工作？','What job would you like to do when you grow up?'],['问爸爸妈妈他们小时候的一件趣事。','Ask your parents about a funny thing from their childhood.'],['描述一下你的房间。','Describe your room.'],['今天你学到了什么新东西？','What new thing did you learn today?'],['吃晚饭时，用中文说三件今天发生的事。','At dinner, say three things that happened today, in Chinese.']];
 const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',learn:'<path d="M2 6l10-4 10 4-10 4z"/><path d="M6 8v6c3 3 9 3 12 0V8"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
 const TABS=[['today','Today'],['learn','Learn'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['rewards','Rewards'],['parent','Admin']];
-const SLOTS={s:"Student's device",p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
+const SLOTS={s:'Student device 1',s2:'Student device 2',s3:'Student device 3',p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
 const PARENT_ONLY=new Set(['kidAdd','kidDel','rc','setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
 const defKid=(stage='S')=>({id:'',name:'',pin:null,stage,xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:stage==='P'?{English:'Standard',Math:'Standard',Science:'Standard',Chinese:'Standard'}:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:stage==='P'?1:3,quiz:[],mist:[],myq:[],exams:[]});
 const def=()=>defKid('S'),defG=()=>({pins:{},rcH:null,kids:{},order:[]});
@@ -984,8 +987,9 @@ async function merge(list,from){let added=[];
 let peer=null,pre='',conns={};
 const loadPeer=()=>new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src=PEERJS;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
 function setPeer(t,ok=false){peerTxt=t;peerOk=ok;renderSync()}
+function renderParentPeers(){$('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot&&conns[k]&&conns[k].open).map(k=>`<li><span class="dot ok"></span><span class="txt">${SLOTS[k]}</span><span class="tag">Connected</span></li>`).join('')||'<li class="muted">No other device connected right now. Devices connect while Level Up is open on them.</li>'}
 function liveNames(){return Object.keys(conns).filter(k=>conns[k].open).map(k=>SLOTS[k]||k)}
-function updPeer(){const n=liveNames();n.length?setPeer('Live · connected to '+n.join(', '),true):setPeer(peer&&peer.open?'Online · waiting for other devices to open Level Up':'Connecting…')}
+function updPeer(){if(role==='parent'&&$('pPeers'))renderParentPeers();const n=liveNames();n.length?setPeer('Live · connected to '+n.join(', '),true):setPeer(peer&&peer.open?'Online · waiting for other devices to open Level Up':'Connecting…')}
 async function send(c,obj){try{c.send(await seal(te.encode(JSON.stringify(obj))))}catch(e){}}
 function broadcast(list){for(const c of Object.values(conns))if(c.open)send(c,{t:'acts',acts:list})}
 function wire(c){const slot=c.peer.slice(pre.length);
@@ -996,17 +1000,26 @@ function wire(c){const slot=c.peer.slice(pre.length);
   c.on('close',()=>{if(conns[slot]===c)delete conns[slot];updPeer()});
   c.on('error',()=>{})}
 function dialAll(){if(!peer||!peer.open)return;for(const s of Object.keys(SLOTS))if(s!==cfg.slot&&!(conns[s]&&conns[s].open))wire(peer.connect(pre+s,{reliable:true}))}
+let idTaken=0,peerReady=false,watchT=null;
+function makePeer(){try{if(peer&&!peer.destroyed)peer.destroy()}catch(e){}conns={};
+  const p=peer=new Peer(pre+cfg.slot);setPeer(idTaken?'Reconnecting…':'Connecting…');
+  p.on('open',()=>{if(p!==peer)return;idTaken=0;updPeer();dialAll()});
+  p.on('connection',c=>{if(p===peer)wire(c)});
+  p.on('disconnected',()=>{if(p===peer){setPeer('Reconnecting…');setTimeout(watch,3000)}});
+  p.on('error',e=>{if(p!==peer||e.type==='peer-unavailable')return;
+    if(e.type==='unavailable-id'){idTaken++;setPeer(idTaken>=4?'Another device is using the "'+SLOTS[cfg.slot]+'" slot. Change this device\'s slot in Admin → Family sync.':'Reconnecting… (waiting for the old connection to clear)')}
+    else if(e.type==='network'||e.type==='server-error'||e.type==='socket-error'||e.type==='socket-closed')setPeer('No internet · changes are saved and will sync when back online');
+    else setPeer('Reconnecting…')})}
+function watch(){if(!peerReady||document.hidden)return;
+  if(!peer||peer.destroyed)return makePeer();
+  if(peer.disconnected){try{peer.reconnect()}catch(e){makePeer()}return}
+  dialAll()}
 async function startPeer(){
   if(!window.RTCPeerConnection||!window.WebSocket)return setPeer('Live sync not supported here · use sync codes');
-  try{await loadPeer()}catch(e){return setPeer('Live sync unavailable offline · changes are saved on this device')}
-  pre='lu'+hex(await sha('peer:'+cfg.fam)).slice(0,24);
-  peer=new Peer(pre+cfg.slot);setPeer('Connecting…');
-  peer.on('open',()=>{updPeer();dialAll()});
-  peer.on('connection',wire);
-  peer.on('disconnected',()=>{setPeer('Reconnecting…');setTimeout(()=>{try{peer.reconnect()}catch(e){}},4000)});
-  peer.on('error',e=>{if(e.type==='peer-unavailable')return;if(e.type==='unavailable-id')setPeer('Another device or browser tab is already using the "'+SLOTS[cfg.slot]+'" slot');else if(e.type==='network'||e.type==='server-error')setPeer('No internet · changes are saved on this device');});
-  setInterval(dialAll,20000);
-  addEventListener('online',()=>{try{if(peer.disconnected)peer.reconnect()}catch(e){}dialAll()})}
+  try{await loadPeer()}catch(e){setPeer('Live sync unavailable offline · changes are saved on this device');setTimeout(startPeer,30000);return}
+  pre='lu'+hex(await sha('peer:'+cfg.fam)).slice(0,24);peerReady=true;makePeer();
+  clearInterval(watchT);watchT=setInterval(watch,10000);
+  addEventListener('online',()=>setTimeout(watch,1000));addEventListener('pageshow',()=>setTimeout(watch,500))}
 
 /* ---------- manual sync codes ---------- */
 async function syncCode(){let u=te.encode(JSON.stringify(A)),z=!!window.CompressionStream;if(z)u=await pipe(u,new CompressionStream('gzip'));return (z?'LUz.':'LU1.')+await seal(u)}
@@ -1141,7 +1154,8 @@ function renderParent(){const w=weekStats();
   $('pWeek').innerHTML='<tr><th>Day</th><th>Focus</th><th>HW</th><th>Chinese</th><th>Reflect</th><th>Game</th></tr>'+w.ks.map(k=>{const l=S.log[k]||{};return `<tr><td>${fmtD(k)}</td><td>${+l.f||0}</td><td>${+l.hw||0}</td><td>${+l.cn||0}m</td><td>${+l.ls||0}</td><td>${usedOn(k)}m</td></tr>`}).join('');
   $('pRw').innerHTML=S.redeemed.filter(r=>r.st==='pending').map(r=>`<li><span class="txt">${esc(r.n)}<br><span class="muted">${+r.c} coins · ${fmtD(r.d)}</span></span><button class="sm" data-give="${esc(r.id)}">Give</button><button class="ghost sm" data-decl="${esc(r.id)}">Decline</button></li>`).join('')||'<li class="muted">No requests waiting.</li>';
   $('pLs').innerHTML=S.lessons.slice(-6).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}<br><span class="muted">${fmtD(l.d)} · focus ${+l.f}/3</span></span></li>`).join('')||'<li class="muted">No reflections yet.</li>';
-  $('pSlot').textContent=SLOTS[cfg.slot]||'';
+  if(document.activeElement!==$('slotSel'))$('slotSel').innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}" ${k===cfg.slot?'selected':''}>${v}</option>`).join('');
+  $('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot).map(k=>{const on=conns[k]&&conns[k].open;return on?`<li><span class="dot ok"></span><span class="txt">${SLOTS[k]}</span><span class="tag">Connected</span></li>`:''}).join('')||'<li class="muted">No other device connected right now. Devices connect while Level Up is open on them.</li>';
   const wq=S.quiz.filter(r=>r.d>=w.ks[0]),qn=wq.reduce((a,r)=>a+r.n,0),qc=wq.reduce((a,r)=>a+r.c,0);
   $('pLearn').innerHTML=[[wq.length,'quizzes done',wq.length<3],[qn,'questions answered'],[qn?Math.round(qc/qn*100)+'%':'–','average score',qn&&qc/qn<.5],[S.mist.length,'mistakes to review',S.mist.length>30]].map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
   $('pMock').innerHTML=S.quiz.filter(r=>r.mode==='mock').slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)} · ${Math.round((r.secs||0)/60)} min</span></span><b class="num">${Math.round(r.c/r.n*100)}%</b></li>`).join('')||'<li class="muted">No mock tests yet.</li>';
@@ -1220,6 +1234,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   else if(b.id==='codeShow'&&P){const sh=$('pCode').textContent.includes('•');$('pCode').textContent=sh?fmtCode(cfg.fam):'••••-••••-••••-••••';b.textContent=sh?'Hide code':'Show code'}
   else if(b.id==='mCopy'&&P){const c=await syncCode();navigator.clipboard.writeText(c).then(()=>toast('Sync code copied ('+Math.ceil(c.length/1024)+' KB). Paste it on the other device.'),()=>{$('mIn').value=c;toast('Copy blocked. The code is in the box; select and copy it.')})}
   else if(b.id==='mMerge'&&P)mergeCode($('mIn'));
+  else if(b.id==='syncNow'){idTaken=0;if(peerReady)makePeer();else startPeer();toast('Reconnecting sync…')}
   else if(b.id==='rcCopy'&&cfg.ui.newRc)navigator.clipboard.writeText(fmtCode(cfg.ui.newRc)).then(()=>toast('Recovery code copied'),()=>toast('Copy blocked. Take a screenshot instead.'));
   else if(b.id==='rcOk'){delete cfg.ui.newRc;saveUI()}
   else if(b.id==='rcNew'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: the old code will stop working';return}const c=newRc();cfg.ui.newRc=c;await act('rc',{h:await rcHash(c)});scrollTo(0,0);b.textContent='Make a new recovery code';delete D.sure}
@@ -1264,8 +1279,9 @@ $('lsSec').addEventListener('change',e=>{cfg.ui.lsec=typeof cfg.ui.lsec==='objec
 onSub('noteF',()=>{if(role!=='parent')return;const t=$('noteT').value.trim(),x=+$('noteX').value;if(!t)return;$('noteT').value='';act('note',{t,x})});
 onSub('nmF',()=>{if(role!=='parent')return;const v=$('nmIn').value.trim();if(v)act('name',{v})});
 onSub('pinF',async()=>{if(role!=='parent')return;const v=$('pinNew').value;$('pinNew').value='';if(!pinOk(v))return toast('Use 4 to 6 digits.');const r=$('pinRole').value;act('pin',{role:r,h:await pinHash(r==='parent'?'parent':kidRole(cur),v)})});
+$('slotSel').addEventListener('change',async e=>{if(role!=='parent')return;cfg.slot=e.target.value;await Store.saveCfg();idTaken=0;if(peerReady)makePeer();toast('This device is now '+SLOTS[cfg.slot])});
 $('capSel').addEventListener('change',e=>{if(role==='parent')act('cap',{v:+e.target.value})});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTimer();if(peer){try{if(peer.disconnected)peer.reconnect()}catch(e){}dialAll()}}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTimer();setTimeout(watch,300)}});
 
 (async()=>{
   if(!window.crypto||!crypto.subtle){$('gWelcome').classList.remove('hidden');toast('Open this app from an https:// address.');return}
