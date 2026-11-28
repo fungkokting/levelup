@@ -125,6 +125,7 @@ body:not(.student) .so{display:none!important}
 </style>
 </head>
 <body>
+<div id="updBar" class="hidden" style="background:var(--acc);color:#fff;padding:10px 16px;text-align:center;font-weight:700">A new version of Level Up is ready. <button id="updGo" class="sm" style="background:#fff;color:#13241d;margin-left:8px">Update now</button></div>
 <header class="hud">
   <div class="top"><div><h1 id="hName">Level Up</h1><span class="sub" id="hSync"></span></div>
     <div class="acts"><select id="kidSel" class="hidden" aria-label="Choose student"></select><span class="sub" id="hWho"></span><button class="out" id="logout">Log out</button></div></div>
@@ -272,8 +273,9 @@ body:not(.student) .so{display:none!important}
       <p><span class="dot" id="pDot"></span><span id="pLive"></span></p>
       <ul class="list" id="pPeers"></ul>
       <p>Family ID: <b class="num">…<span id="pFam"></span></b> <span class="muted">(must match on every device)</span></p>
+      <p class="muted">App version on this device: <b id="pVer"></b>. All devices should show the same version.</p>
       <label for="slotSel">This device is</label><select id="slotSel"></select>
-      <p class="muted">Every device needs its own slot. Give each child's device a different student slot (Student device 1, 2, 3).</p>
+      <p class="muted">Every device needs its own slot, including a child's second device. For example: Demus's iPad = Student device 1, Derrius's iPhone = Student device 2, Derrius's PC = Student device 3.</p>
       <div class="row" style="margin-top:8px"><button class="ghost" id="syncNow">Reconnect sync now</button></div>
       <label>Family code (needed to join another device)</label>
       <p class="code" id="pCode">••••-••••-••••-••••</p><button class="ghost sm" id="codeShow">Show code</button>
@@ -889,7 +891,7 @@ p_z_py:['拼音帮助我们读出汉字。','四个声调：ā á ǎ à。读的
 p_z_ju:['先把句子读完，想一想意思。','选的词要让句子通顺。','“因为……所以”说原因和结果。'],
 p_z_yd:['慢慢读，读两遍。','先看问题，再在文章里找答案。','回答时写完整的句子。']};
 
-const LV=250,PEERJS='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+const APPV='2026.11.28',LV=250,PEERJS='https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
 const SEC_SUBS=['Math','English','Biology','Chemistry','Chinese'],PRI_SUBS=['English','Math','Science','Chinese'];
 const subs=()=>S.stage==='P'?PRI_SUBS:SEC_SUBS,lvOpts=()=>S.stage==='P'?['Standard','Foundation']:['G1','G2','G3'],maxYr=()=>S.stage==='P'?6:4;
 const yrLabel=n=>(S.stage==='P'?'P':'Sec ')+n,kidYr=k=>(k.stage==='P'?'Primary '+k.sec:'Sec '+k.sec);
@@ -897,7 +899,7 @@ const TITLES=['Rookie','Starter','Grinder','Focused','Steady','Sharp','Locked-in
 const PROMPTS=[['说说你今天在学校最开心的一件事。','Tell someone the best thing that happened at school today.'],['你最喜欢的游戏是什么？为什么？','What is your favourite game, and why?'],['用中文点一次饭菜或饮料。','Order food or a drink in Chinese once today.'],['跟家人说说你明天的计划。','Tell your family your plan for tomorrow.'],['介绍一个你很喜欢的朋友。','Describe a friend you really like.'],['今天的天气怎么样？你喜欢这样的天气吗？','How is the weather today? Do you like it?'],['如果你有一百块钱，你会买什么？','If you had $100, what would you buy?'],['说说你周末做了什么。','Talk about what you did at the weekend.'],['你觉得哪一科最难？为什么？','Which subject do you find hardest, and why?'],['教家人玩你喜欢的游戏，全程用中文。','Teach a family member your favourite game, only in Chinese.'],['说说一部你喜欢的电影或视频。','Talk about a movie or video you like.'],['你长大以后想做什么工作？','What job would you like to do when you grow up?'],['问爸爸妈妈他们小时候的一件趣事。','Ask your parents about a funny thing from their childhood.'],['描述一下你的房间。','Describe your room.'],['今天你学到了什么新东西？','What new thing did you learn today?'],['吃晚饭时，用中文说三件今天发生的事。','At dinner, say three things that happened today, in Chinese.']];
 const ICON={today:'<path d="M5 12l4 4 10-10"/>',focus:'<circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/>',homework:'<path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7"/>',chinese:'<path d="M4 5h16v11H9l-5 4z"/>',progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',learn:'<path d="M2 6l10-4 10 4-10 4z"/><path d="M6 8v6c3 3 9 3 12 0V8"/>',rewards:'<path d="M4 10h16v10H4zM2 6h20v4H2zM12 6v14"/>',parent:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'};
 const TABS=[['today','Today'],['learn','Learn'],['focus','Focus'],['homework','Tasks'],['chinese','华文'],['rewards','Rewards'],['parent','Admin']];
-const SLOTS={s:'Student device 1',s2:'Student device 2',s3:'Student device 3',p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
+const SLOTS={s:'Student device 1',s2:'Student device 2',s3:'Student device 3',s4:'Student device 4',s5:'Student device 5',s6:'Student device 6',p1:'Parent device 1',p2:'Parent device 2',p3:'Parent device 3'};
 const PARENT_ONLY=new Set(['kidAdd','kidDel','rc','setup','pin','name','cap','lv','sec','rwAdd','rwDel','give','decl','note','restore']);
 const defKid=(stage='S')=>({id:'',name:'',pin:null,stage,xp:0,coins:0,bank:0,log:{},hw:[],marks:[],wins:[],lessons:[],cnlog:[],rewards:[{n:'Bubble tea',c:150},{n:'Choose weekend dinner',c:300},{n:'Extra 1 hr gaming on Saturday',c:500},{n:'New game or in-game item (agreed with parents)',c:1500}],used:[],redeemed:[],notes:[],cap:60,lv:stage==='P'?{English:'Standard',Math:'Standard',Science:'Standard',Chinese:'Standard'}:{Math:'G1',English:'G2',Biology:'G2',Chemistry:'G2',Chinese:'G1'},sec:stage==='P'?1:3,quiz:[],mist:[],myq:[],exams:[]});
 const def=()=>defKid('S'),defG=()=>({pins:{},rcH:null,kids:{},order:[]});
@@ -1005,7 +1007,7 @@ async function act(type,args={},by){if(by===undefined)by=role==='parent'?'parent
   A.push(a);have.add(a.id);if(A.length>1&&cmp(A[A.length-2],a)>0){A.sort(cmp);replay()}else{G=probe;pickS()}
   await Store.add([a]);broadcast([a]);if(r)toast(r);render()}
 async function merge(list,from){let added=[];
-  for(const a of list){if(a&&typeof a.id==='string'&&!have.has(a.id)&&known(a.type)&&typeof a.ts==='number'){A.push(a);have.add(a.id);added.push(a)}}
+  for(const a of list){if(a&&typeof a.id==='string'&&!have.has(a.id)&&typeof a.type==='string'&&typeof a.ts==='number'){A.push(a);have.add(a.id);added.push(a)}}
   if(added.length){A.sort(cmp);replay();await Store.add(added);render();if(from)toast('Synced '+added.length+' update'+(added.length>1?'s':'')+' from '+from)}
   return added.length}
 
@@ -1013,16 +1015,20 @@ async function merge(list,from){let added=[];
 let peer=null,pre='',conns={};
 const loadPeer=()=>new Promise((res,rej)=>{if(window.Peer)return res();const s=document.createElement('script');s.src=PEERJS;s.onload=res;s.onerror=rej;document.head.appendChild(s)});
 function setPeer(t,ok=false){peerTxt=t;peerOk=ok;renderSync()}
-function renderParentPeers(){const sn=cfg.seen||{};$('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot&&((conns[k]&&conns[k].open)||sn[k])).map(k=>{const on=conns[k]&&conns[k].open;return `<li><span class="dot ${on?'ok':''}"></span><span class="txt">${SLOTS[k]}</span><span class="tag">${on?'Connected now':'Last synced '+ago(sn[k])}</span></li>`}).join('')||'<li class="muted">This device has never synced with another device. Open Level Up on both devices at the same time, and check both show the same Family ID.</li>'}
+function renderParentPeers(){const sn=cfg.seen||{};$('pPeers').innerHTML=Object.keys(SLOTS).filter(k=>k!==cfg.slot&&((conns[k]&&conns[k].open)||sn[k])).map(k=>{const on=conns[k]&&conns[k].open;const ov=on&&peerVer[k]&&peerVer[k]!==APPV;return `<li><span class="dot ${on?'ok':''}"></span><span class="txt">${SLOTS[k]}${ov?`<br><span class="late">Older app version (${esc(peerVer[k])}). Close and reopen Level Up on it.</span>`:''}</span><span class="tag">${on?'Connected now':'Last synced '+ago(sn[k])}</span></li>`}).join('')||'<li class="muted">This device has never synced with another device. Open Level Up on both devices at the same time, and check both show the same Family ID.</li>'}
 function liveNames(){return Object.keys(conns).filter(k=>conns[k].open).map(k=>SLOTS[k]||k)}
 function updPeer(){if(role==='parent'&&$('pPeers'))renderParentPeers();const n=liveNames();n.length?setPeer('Live · connected to '+n.join(', '),true):setPeer(peer&&peer.open?'Online · waiting for other devices to open Level Up':'Connecting…')}
 async function send(c,obj){try{c.send(await seal(te.encode(JSON.stringify(obj))))}catch(e){}}
-function broadcast(list){for(const c of Object.values(conns))if(c.open)send(c,{t:'acts',acts:list})}
+async function sendActs(c,list){for(let i=0;i<list.length;i+=80)await send(c,{t:'acts',acts:list.slice(i,i+80)})}
+function broadcast(list){for(const c of Object.values(conns))if(c.open)sendActs(c,list)}
+let peerVer={};
+setInterval(()=>{for(const c of Object.values(conns))if(c.open)send(c,{t:'ids',ids:[...have]})},30000);
 function wire(c){const slot=c.peer.slice(pre.length);
   const seen=()=>{cfg.seen=cfg.seen||{};cfg.seen[slot]=Date.now()};
-  c.on('open',()=>{conns[slot]=c;seen();Store.saveCfg();updPeer();send(c,{t:'ids',ids:[...have]})});
+  c.on('open',()=>{conns[slot]=c;seen();Store.saveCfg();updPeer();send(c,{t:'hello',v:APPV});send(c,{t:'ids',ids:[...have]})});
   c.on('data',async d=>{let m;try{m=JSON.parse(td.decode(await unseal(String(d))))}catch(e){return}seen();
-    if(m.t==='ids'&&Array.isArray(m.ids)){const theirs=new Set(m.ids),miss=A.filter(a=>!theirs.has(a.id));if(miss.length)send(c,{t:'acts',acts:miss})}
+    if(m.t==='hello'){peerVer[slot]=String(m.v||'');if(m.v!==APPV){toast((SLOTS[slot]||'Another device')+(m.v<APPV?' is running an older Level Up. Close and reopen the app on it.':' has a newer Level Up. Reloading to update…'));if(m.v>APPV)setTimeout(()=>location.reload(),2500)}updPeer()}
+    else if(m.t==='ids'&&Array.isArray(m.ids)){const theirs=new Set(m.ids),miss=A.filter(a=>!theirs.has(a.id));if(miss.length)sendActs(c,miss)}
     else if(m.t==='acts'&&Array.isArray(m.acts))merge(m.acts,SLOTS[slot]||'another device')});
   c.on('close',()=>{if(conns[slot]===c)delete conns[slot];updPeer()});
   c.on('error',()=>{})}
@@ -1214,7 +1220,7 @@ function renderSync(){const t=cfg.fam?peerTxt:'';$('hSync').innerHTML=t?`<span c
 function renderGate(){const g=!role;$('gate').classList.toggle('hidden',!g);if(!g)return;
   $('gWelcome').classList.toggle('hidden',!!cfg.fam);$('gLogin').classList.toggle('hidden',!cfg.fam);
   const ready=!!G.pins.parent;$('gReady').classList.toggle('hidden',!ready);$('gWait').classList.toggle('hidden',ready);
-  if(who!=='parent'&&!G.kids[who])who=G.order[0]||'parent';
+  if(!whoPicked||(who!=='parent'&&!G.kids[who]))who=G.order[0]||'parent';
   $('whoBox').innerHTML=G.order.map(k=>`<button data-who="${esc(k)}" class="${who===k?'on':''}">${esc(G.kids[k].name||'Student')}<small>${kidYr(G.kids[k])}</small></button>`).join('')+`<button data-who="parent" class="${who==='parent'?'on':''}">Parent<small>Administrator</small></button>`}
 function render(){
   pickS();document.body.classList.toggle('student',role!=='parent');renderGate();renderSync();if(!role)return;
@@ -1260,7 +1266,7 @@ function renderParent(){const w=weekStats();
   $('pRw').innerHTML=S.redeemed.filter(r=>r.st==='pending').map(r=>`<li><span class="txt">${esc(r.n)}<br><span class="muted">${+r.c} coins · ${fmtD(r.d)}</span></span><button class="sm" data-give="${esc(r.id)}">Give</button><button class="ghost sm" data-decl="${esc(r.id)}">Decline</button></li>`).join('')||'<li class="muted">No requests waiting.</li>';
   $('pLs').innerHTML=S.lessons.slice(-6).reverse().map(l=>`<li><span class="tag">${esc(l.s)}</span><span class="txt">${esc(l.t)}<br><span class="muted">${fmtD(l.d)} · focus ${+l.f}/3</span></span></li>`).join('')||'<li class="muted">No reflections yet.</li>';
   if(document.activeElement!==$('slotSel'))$('slotSel').innerHTML=Object.entries(SLOTS).map(([k,v])=>`<option value="${k}" ${k===cfg.slot?'selected':''}>${v}</option>`).join('');
-  renderParentPeers();$('pFam').textContent=famId();
+  renderParentPeers();$('pFam').textContent=famId();$('pVer').textContent=APPV;
   const wq=S.quiz.filter(r=>r.d>=w.ks[0]),qn=wq.reduce((a,r)=>a+r.n,0),qc=wq.reduce((a,r)=>a+r.c,0);
   $('pLearn').innerHTML=[[wq.length,'quizzes done',wq.length<3],[qn,'questions answered'],[qn?Math.round(qc/qn*100)+'%':'–','average score',qn&&qc/qn<.5],[S.mist.length,'mistakes to review',S.mist.length>30]].map(([v,l,bad])=>`<div class="kpi ${bad?'bad':''}"><div class="num">${v}</div><span>${l}</span></div>`).join('');
   $('pMock').innerHTML=S.quiz.filter(r=>r.mode==='mock').slice(-5).reverse().map(r=>`<li><span class="txt">${esc(r.title)}<br><span class="muted">${fmtD(r.d)} · ${Math.round((r.secs||0)/60)} min</span></span><b class="num">${Math.round(r.c/r.n*100)}%</b></li>`).join('')||'<li class="muted">No mock tests yet.</li>';
@@ -1287,7 +1293,7 @@ const saveUI=()=>{Store.saveCfg();render()};
 const ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const newCode=()=>{const r=crypto.getRandomValues(new Uint32Array(16));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
 const fmtCode=c=>c?c.replace(/(.{4})(?=.)/g,'$1-'):'';
-let who='k1';
+let who='k1',whoPicked=false;
 const kidRole=k=>k==='k1'?'student':'student:'+k;
 const newRc=()=>{const r=crypto.getRandomValues(new Uint32Array(12));return [...r].map(x=>ALPH[x%ALPH.length]).join('')};
 const rcHash=async c=>hex(await sha('rc:'+cfg.fam+':'+c.toUpperCase().replace(/[^A-Z0-9]/g,'')));
@@ -1297,11 +1303,12 @@ function logout(){role=null;if(cfg.session){delete cfg.session;Store.saveCfg()}r
 
 /* ---------- events ---------- */
 document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;const D=b.dataset;
-  if(D.who){who=D.who;renderGate();$('lPin').focus();return}
+  if(D.who){who=D.who;whoPicked=true;renderGate();$('lPin').focus();return}
   if(b.id==='gMerge')return mergeCode($('gIn'));
   if(b.id==='fgBtn'){$('fgBox').classList.toggle('hidden');return}
   if(b.id==='fgWipe'){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload();return}
   if(b.id==='gLeave'){if(!D.sure){D.sure=1;b.textContent='Tap again to start over';return}await Store.wipe();location.reload();return}
+  if(b.id==='updGo'){location.reload();return}
   if(b.id==='celebOk'){$('celeb').classList.add('hidden');return}
   if(!role)return;
   const P=role==='parent';
@@ -1355,7 +1362,8 @@ document.addEventListener('click',async e=>{const b=e.target.closest('button');i
   else if(b.id==='rcNew'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: the old code will stop working';return}const c=newRc();cfg.ui.newRc=c;await act('rc',{h:await rcHash(c)});scrollTo(0,0);b.textContent='Make a new recovery code';delete D.sure}
   else if(b.id==='wipe'&&P){if(!D.sure){D.sure=1;b.textContent='Tap again: delete everything on this device';return}await Store.wipe();location.reload()}
 });
-const onSub=(id,fn)=>$(id).addEventListener('submit',e=>{e.preventDefault();fn()});
+const OPEN_FORMS=new Set(['newF','joinF','loginF','rcF']);
+const onSub=(id,fn)=>$(id).addEventListener('submit',e=>{e.preventDefault();if(!role&&!OPEN_FORMS.has(id))return;fn()});
 const pinOk=v=>/^\d{4,6}$/.test(v);
 onSub('newF',async()=>{const name=$('nName').value.trim(),pp=$('nPP').value,sp=$('nSP').value;
   if(!name)return toast("Enter the student's name.");if(!pinOk(pp)||!pinOk(sp))return toast('PINs must be 4 to 6 digits.');if(pp===sp)return toast('Use different PINs for parent and student.');
@@ -1398,10 +1406,12 @@ $('slotSel').addEventListener('change',async e=>{if(role!=='parent')return;cfg.s
 $('capSel').addEventListener('change',e=>{if(role==='parent')act('cap',{v:+e.target.value})});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){renderTimer();setTimeout(watch,300)}});
 
+async function checkUpdate(){try{const t=await (await fetch(location.href.split('#')[0],{cache:'no-store'})).text(),m=t.match(/APPV='([0-9.]+)'/);if(m&&m[1]>APPV)$('updBar').classList.remove('hidden')}catch(e){}}
+setTimeout(checkUpdate,5000);setInterval(checkUpdate,30*6e4);
 (async()=>{
   if(!window.crypto||!crypto.subtle){$('gWelcome').classList.remove('hidden');toast('Open this app from an https:// address.');return}
   await Store.init();cfg=await Store.cfg();cfg.ui=Object.assign({tab:'today',p:0,timer:null},cfg.ui||{});
-  A=(await Store.acts()).filter(a=>a&&a.id&&known(a.type)).sort(cmp);have=new Set(A.map(a=>a.id));
+  A=(await Store.acts()).filter(a=>a&&a.id&&typeof a.type==='string'&&typeof a.ts==='number').sort(cmp);have=new Set(A.map(a=>a.id));
   if(cfg.fam){await makeKey();replay();const s=cfg.session==='student'?'k1':cfg.session;if(s&&G.kids[s]&&G.kids[s].pin){role=s;pickS()}startPeer()}
   render();
 })();
